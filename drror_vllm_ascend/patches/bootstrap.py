@@ -13,6 +13,7 @@ from ..plan import file_sha256
 
 EXPECTED_GDN_SHA256 = "d6ec29919268178f5bf6e70e689c1d273d04b1cb1d84dc94efa7bbbc35490816"
 EXPECTED_QWEN_SHA256 = "04f3de5372973770d71c5c05f2e8a5e221ec52b62cca7a1e302d9201b61b8adc"
+EXPECTED_RUNNER_SHA256 = "94d75dbeb5d23ab5b383cdc69114167392b967994bb21342cf748b733ba9a968"
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ def apply_patches(config: DrrqrConfig) -> None:
         )
         from vllm.model_executor.models.qwen3_5 import Qwen3_5Model
         from vllm_ascend.ops import gdn
+        from vllm_ascend.worker.model_runner_v1 import NPUModelRunner
     except Exception as error:  # pragma: no cover - requires pinned runtime
         raise DrrqrRuntimeUnsupported(
             "DRRQR requires vLLM's official Qwen3.8-27B model path and Ascend GDN modules"
@@ -66,6 +68,7 @@ def apply_patches(config: DrrqrConfig) -> None:
         hasattr(gdn, "AscendGatedDeltaNetAttention"),
         hasattr(gdn.AscendGatedDeltaNetAttention, "_forward_core"),
         hasattr(QwenGatedDeltaNetAttention, "rearrange_mixed_qkv"),
+        hasattr(NPUModelRunner, "_model_forward"),
     )
     if config.require_runtime_hooks and not all(required):
         raise DrrqrRuntimeUnsupported("DRRQR required Ascend GDN hooks are missing")
@@ -73,6 +76,7 @@ def apply_patches(config: DrrqrConfig) -> None:
     for name, source, expected in (
         ("ascend_gdn", inspect.getsourcefile(gdn), EXPECTED_GDN_SHA256),
         ("qwen_model", inspect.getsourcefile(Qwen3_5Model), EXPECTED_QWEN_SHA256),
+        ("ascend_model_runner", inspect.getsourcefile(NPUModelRunner), EXPECTED_RUNNER_SHA256),
     ):
         if source is None or file_sha256(Path(source)) != expected:
             raise DrrqrRuntimeUnsupported(f"DRRQR: {name} source differs from the audited v0.23 image")
@@ -100,9 +104,14 @@ def apply_patches(config: DrrqrConfig) -> None:
 
     if config.capture_enable:
         from .capture import install_capture_patch
-        from .capture_binding import CaptureBinding, install_capture_model_patch
+        from .capture_binding import (
+            CaptureBinding,
+            install_capture_model_patch,
+            install_capture_runner_patch,
+        )
 
         binding = CaptureBinding(config)
+        install_capture_runner_patch(NPUModelRunner, config, binding)
         install_capture_model_patch(Qwen3_5Model, config, binding, verify_worker=verify_worker)
         install_capture_patch(QwenGatedDeltaNetAttention, gdn, config, binding=binding)
         emit_evidence(

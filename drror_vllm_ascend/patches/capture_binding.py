@@ -125,13 +125,53 @@ def install_capture_model_patch(model_cls, config, binding, *, verify_worker=Non
         if not (Path(config.capture_dir) / ".armed").is_file():
             return original_forward(self, *args, **kwargs)
         bound = forward_signature.bind(self, *args, **kwargs)
-        request = binding.request(bound.arguments.get("input_ids"))
-        token = binding.current_request.set(request)
-        try:
-            return original_forward(self, *args, **kwargs)
-        finally:
-            binding.current_request.reset(token)
+        request = binding.current_request.get()
+        if request is None:
+            raise RuntimeError("DRRQR: capture runner did not bind the forwarded token IDs")
+        input_ids = bound.arguments.get("input_ids")
+        if input_ids is not None:
+            forwarded = binding.request(input_ids)
+            if forwarded["input_ids_sha256"] != request["input_ids_sha256"]:
+                raise RuntimeError("DRRQR: runner and model token-ID bindings differ")
+        return original_forward(self, *args, **kwargs)
 
     initialize._drror_capture_model = identity
     model_cls.__init__ = initialize
     model_cls.forward = forward
+
+
+def install_capture_runner_patch(runner_cls, config, binding):
+    """Bind the v0.23 scheduler token buffer before multimodal embedding."""
+
+    current = runner_cls._model_forward
+    identity = (config.capture_dir, config.source_config_sha256, config.calibration_sha256)
+    installed = getattr(current, "_drror_capture_runner", None)
+    if installed is not None:
+        if installed != identity:
+            raise RuntimeError("DRRQR: capture runner already bound to another source")
+        return
+    signature = inspect.signature(current)
+    if not {"num_tokens_padded", "input_ids"}.issubset(signature.parameters):
+        raise RuntimeError("DRRQR: Ascend model-runner ABI changed")
+
+    @functools.wraps(current)
+    def model_forward(self, *args, **kwargs):
+        if not (Path(config.capture_dir) / ".armed").is_file():
+            return current(self, *args, **kwargs)
+        bound = signature.bind(self, *args, **kwargs)
+        num_tokens = bound.arguments["num_tokens_padded"]
+        input_ids = bound.arguments.get("input_ids")
+        if input_ids is None:
+            token_buffer = getattr(getattr(self, "input_ids", None), "gpu", None)
+            if token_buffer is None:
+                raise RuntimeError("DRRQR: Ascend runner token-ID buffer is unavailable")
+            input_ids = token_buffer[:num_tokens]
+        request = binding.request(input_ids)
+        token = binding.current_request.set(request)
+        try:
+            return current(self, *args, **kwargs)
+        finally:
+            binding.current_request.reset(token)
+
+    model_forward._drror_capture_runner = identity
+    runner_cls._model_forward = model_forward

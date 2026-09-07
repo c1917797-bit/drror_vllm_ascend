@@ -202,15 +202,50 @@ class CaptureBindingTests(unittest.TestCase):
                     events.append(binding.current_request.get())
                     raise RuntimeError("synthetic kernel failure")
 
+            class Runner:
+                def __init__(self, model):
+                    self.model = model
+                    self.input_ids = types.SimpleNamespace(gpu=torch.tensor([1, 2]))
+
+                def _model_forward(
+                    self,
+                    num_tokens_padded,
+                    input_ids=None,
+                    positions=None,
+                    inputs_embeds=None,
+                ):
+                    return self.model.forward(input_ids, positions)
+
             with mock.patch.object(binding, "bind", side_effect=lambda config: events.append("bound")):
+                capture_binding.install_capture_runner_patch(Runner, config, binding)
                 capture_binding.install_capture_model_patch(Model, config, binding)
                 instance = Model(vllm_config=object())
             self.assertEqual(events[:2], ["bound", "constructed"])
             (Path(directory) / ".armed").touch()
+            runner = Runner(instance)
             with self.assertRaisesRegex(RuntimeError, "synthetic kernel failure"):
-                instance.forward(torch.tensor([1, 2]))
+                runner._model_forward(2, input_ids=None, inputs_embeds=torch.zeros(2, 4))
             self.assertEqual(events[-1]["row_index"], 0)
             self.assertIsNone(binding.current_request.get())
+
+    def test_model_forward_fails_without_runner_binding(self):
+        with tempfile.TemporaryDirectory(prefix="drror-forward-unbound-") as directory:
+            config = DrrqrConfig(capture_enable=True, capture_dir=directory)
+            binding = capture_binding.CaptureBinding(config)
+
+            class Model:
+                def __init__(self, *, vllm_config, prefix=""):
+                    pass
+
+                def forward(self, input_ids, positions=None):
+                    return input_ids
+
+            with mock.patch.object(binding, "bind"):
+                capture_binding.install_capture_model_patch(Model, config, binding)
+                instance = Model(vllm_config=object())
+            (Path(directory) / ".armed").touch()
+            with self.assertRaisesRegex(RuntimeError, "runner did not bind"):
+                instance.forward(None)
 
     def test_capture_binding_checks_actual_disk_and_runtime_metadata(self):
         with tempfile.TemporaryDirectory(prefix="drror-source-bind-") as directory:
@@ -479,9 +514,8 @@ class SelectionTests(unittest.TestCase):
                         "termination": "max_swaps",
                     },
                 ),
-            ):
-                with self.assertRaisesRegex(RuntimeError, "condition was not reached"):
-                    selection.load_keep_maps(root, **arguments)
+            ), self.assertRaisesRegex(RuntimeError, "condition was not reached"):
+                selection.load_keep_maps(root, **arguments)
             for field, value in (
                 ("schema", "drrqr-post-conv-qk/v1"),
                 ("source_index_sha256", "c" * 64),
