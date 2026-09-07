@@ -313,6 +313,36 @@ class ModelPatchTests(unittest.TestCase):
         self.assertEqual(len(instance.loaded), 1)
         self.assertEqual(instance._drror_drrqr_plan.target_head_k_dim, 102)
 
+    def test_loader_that_does_not_consume_weights_fails_closed(self):
+        class Plan:
+            digest = "e" * 64
+            old_head_k_dim = 128
+            target_head_k_dim = 102
+            keep_indices = tuple((layer, ()) for layer in range(48))
+
+            def transform_weights(self, weights):
+                yield from weights
+
+        class Model:
+            def __init__(self, *, vllm_config, prefix=""):
+                self.config = vllm_config
+                self.prefix = prefix
+
+            def load_weights(self, weights):
+                del weights
+                return {"returned-early"}
+
+        config = DrrqrConfig(
+            enable=True,
+            plan_path="/plan.json",
+            plan_sha256="e" * 64,
+        )
+        with mock.patch.object(model, "load_runtime_plan", return_value=Plan()):
+            model.install_model_patch(Model, config)
+            instance = Model(vllm_config=object(), prefix="model")
+            with self.assertRaisesRegex(RuntimeError, "did not consume all weights"):
+                instance.load_weights(iter([("weight", torch.ones(1))]))
+
 
 class GdnHotPathTests(unittest.TestCase):
     def test_reduced_shape_emits_hot_path_once(self):
@@ -374,6 +404,64 @@ class GdnHotPathTests(unittest.TestCase):
                 ["reduced_gdn_hot_path"],
             )
             self.assertEqual(records[0]["key_head_dim"], 102)
+
+    def test_two_65_token_requests_preserve_prebuilt_chunk_metadata(self):
+        with tempfile.TemporaryDirectory(prefix="drror-gdn-multiseq-") as directory:
+            evidence = Path(directory) / "evidence.jsonl"
+
+            class Target:
+                @staticmethod
+                def _chunk_gated_delta_rule_fused(*args):
+                    return args[2], args[5]
+
+            starts = torch.tensor([0, 65, 130])
+            chunk = object()
+            candidate = types.SimpleNamespace(
+                prefill_query_start_loc=starts,
+                non_spec_prefill_metadata=types.SimpleNamespace(chunk=chunk),
+            )
+            calls = []
+
+            def fallback(**kwargs):
+                calls.append(kwargs)
+                return kwargs["v"], kwargs["initial_state"]
+
+            module = types.SimpleNamespace(
+                AscendGatedDeltaNetAttention=Target,
+                get_forward_context=lambda: types.SimpleNamespace(
+                    attn_metadata={"linear": candidate}
+                ),
+                chunk_gated_delta_rule=fallback,
+            )
+            config = DrrqrConfig(
+                enable=True,
+                plan_path="/plan.json",
+                plan_sha256="3" * 64,
+                evidence_file=str(evidence),
+            )
+            gdn.install_fused_shape_guard(module, config)
+            q = torch.zeros(1, 130, 4, 102)
+            v = torch.ones(1, 130, 12, 128)
+            state = torch.zeros(1, 12, 128, 102)
+            Target._chunk_gated_delta_rule_fused(
+                q,
+                q,
+                v,
+                torch.zeros(1, 130, 12),
+                torch.ones(1, 130, 12),
+                state,
+                starts,
+                102**-0.5,
+            )
+            self.assertEqual(len(calls), 1)
+            self.assertIs(calls[0]["prebuilt_meta"], chunk)
+            self.assertIs(calls[0]["cu_seqlens"], starts)
+            records = [
+                json.loads(line)
+                for line in evidence.read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(records[0]["sequence_count"], 2)
+            self.assertEqual(records[0]["token_count"], 130)
 
 
 class ActivationAuditTests(unittest.TestCase):
