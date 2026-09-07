@@ -16,7 +16,14 @@ import torch
 
 from drror_vllm_ascend import audit, calibration, envs, prepare, selection
 from drror_vllm_ascend.envs import DrrqrConfig
-from drror_vllm_ascend.patches import bootstrap, capture, capture_binding, gdn, model
+from drror_vllm_ascend.patches import (
+    bootstrap,
+    cache_alignment,
+    capture,
+    capture_binding,
+    gdn,
+    model,
+)
 from drror_vllm_ascend.plan import (
     OFFICIAL_CONFIG_SHA256,
     OFFICIAL_INDEX_SHA256,
@@ -800,6 +807,32 @@ class ModelPatchTests(unittest.TestCase):
                 instance.load_weights(iter([("weight", torch.ones(1))]))
 
 
+class CacheAlignmentTests(unittest.TestCase):
+    def test_reduced_dk102_uses_128_token_ceil_padding(self):
+        layout = cache_alignment.calculate_padded_layout(
+            ssm_page_size=313344,
+            conv_page_size=14112,
+            attn_single_token_k_page_size=512,
+            attn_token_page_size=1024,
+            current_block_size=128,
+        )
+        self.assertEqual(layout["block_size"], 640)
+        self.assertEqual(layout["attn_k_page_size"], 327680)
+        self.assertEqual(layout["mamba_page_size_padded"], 669472)
+        self.assertFalse(layout["native_exact_alignment"])
+
+    def test_dk64_is_natively_exact(self):
+        layout = cache_alignment.calculate_padded_layout(
+            ssm_page_size=196608,
+            conv_page_size=12288,
+            attn_single_token_k_page_size=512,
+            attn_token_page_size=1024,
+            current_block_size=128,
+        )
+        self.assertEqual(layout["block_size"], 384)
+        self.assertTrue(layout["native_exact_alignment"])
+
+
 class ActivationAuditTests(unittest.TestCase):
     def test_tp4_complete_evidence_passes_and_missing_hot_path_fails(self):
         with tempfile.TemporaryDirectory(prefix="drror-audit-") as directory:
@@ -819,6 +852,16 @@ class ActivationAuditTests(unittest.TestCase):
                     "pid": 99,
                     "mode": "treatment",
                     "plan_sha256": digest,
+                },
+                {
+                    "schema": "drror-vllm-ascend-evidence/v1",
+                    "event": "hybrid_cache_alignment_verified",
+                    "component": "cache",
+                    "pid": 99,
+                    "plan_sha256": digest,
+                    "target_head_k_dim": 102,
+                    "alignment_mode": "ceil-pad",
+                    "source_sha256": cache_alignment.EXPECTED_ASCEND_MAMBA_CONFIG_SHA256,
                 },
             ]
             for pid in range(1, 5):
@@ -907,7 +950,12 @@ class ActivationAuditTests(unittest.TestCase):
                     failed = audit.audit_activation(path, plan_sha256=digest, target_head_k_dim=102)
                     self.assertFalse(failed["ok"])
                     self.assertTrue(any("worker 4" in error for error in failed["errors"]))
-            rows[2]["runtime_sources"]["ascend_gdn"]["sha256"] = "0" * 64
+            dispatch = next(
+                row
+                for row in rows
+                if row["event"] == "worker_dispatch_verified"
+            )
+            dispatch["runtime_sources"]["ascend_gdn"]["sha256"] = "0" * 64
             path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
             failed = audit.audit_activation(path, plan_sha256=digest, target_head_k_dim=102)
             self.assertFalse(failed["ok"])

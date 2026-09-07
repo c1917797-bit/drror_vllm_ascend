@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .patches.bootstrap import EXPECTED_GDN_SHA256, EXPECTED_QWEN_SHA256
+from .patches.cache_alignment import EXPECTED_ASCEND_MAMBA_CONFIG_SHA256
 
 HASH = re.compile(r"^[0-9a-f]{64}$")
 WORKER_EVENTS = {
@@ -131,6 +132,20 @@ def audit_activation(
     ]
     if not treatment_patch_events:
         errors.append("missing treatment runtime patch event for expected plan")
+    cache_events = [
+        record
+        for record in records
+        if record.get("event") == "hybrid_cache_alignment_verified"
+        and record.get("plan_sha256") == plan_sha256
+        and record.get("target_head_k_dim") == target_head_k_dim
+        and record.get("source_sha256") == EXPECTED_ASCEND_MAMBA_CONFIG_SHA256
+    ]
+    expected_alignment = "native-exact" if target_head_k_dim == 64 else "ceil-pad"
+    if not any(record.get("alignment_mode") == expected_alignment for record in cache_events):
+        errors.append(
+            "missing audited hybrid-cache alignment event "
+            f"for mode {expected_alignment}"
+        )
     return {
         "schema": "drror-activation-audit/v1",
         "ok": not errors,

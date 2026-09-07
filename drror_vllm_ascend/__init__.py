@@ -7,7 +7,7 @@ import logging
 from .diagnostics import configure_package_logging, emit_evidence
 from .envs import DrrqrConfig, get_config
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 logger = logging.getLogger(__name__)
 

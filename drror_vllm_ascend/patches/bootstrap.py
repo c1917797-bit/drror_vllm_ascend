@@ -132,8 +132,10 @@ def apply_patches(config: DrrqrConfig) -> None:
         return
 
     from .gdn import install_decode_observer, install_prefill_patch
+    from .cache_alignment import install_hybrid_cache_alignment_patch
     from .model import install_model_patch
 
+    install_hybrid_cache_alignment_patch(config)
     install_prefill_patch(gdn, config)
 
     def prepare_runtime(plan):
