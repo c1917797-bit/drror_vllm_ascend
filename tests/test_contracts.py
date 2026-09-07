@@ -458,9 +458,30 @@ class SelectionTests(unittest.TestCase):
                 "calibration_input_hashes": [digest],
             }
             torch.save(payload, path)
-            with mock.patch.object(selection, "strong_rrqr_indices", return_value=np.array([0, 2])):
+            rrqr_evidence = {
+                "converged": True,
+                "termination": "strong_rrqr_condition",
+            }
+            with mock.patch.object(
+                selection,
+                "strong_rrqr_indices",
+                return_value=(np.array([0, 2]), rrqr_evidence),
+            ):
                 keeps, _ = selection.load_keep_maps(root, **arguments)
             self.assertEqual(keeps[0].tolist(), [0, 2, 4, 6])
+            with mock.patch.object(
+                selection,
+                "strong_rrqr_indices",
+                return_value=(
+                    np.array([0, 2]),
+                    {
+                        "converged": False,
+                        "termination": "max_swaps",
+                    },
+                ),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "condition was not reached"):
+                    selection.load_keep_maps(root, **arguments)
             for field, value in (
                 ("schema", "drrqr-post-conv-qk/v1"),
                 ("source_index_sha256", "c" * 64),
@@ -482,6 +503,55 @@ class SelectionTests(unittest.TestCase):
         self.assertTrue(np.array_equal(first, second))
         self.assertEqual(len(set(first.tolist())), 4)
         self.assertTrue(all(0 <= value < 8 for value in first))
+
+    def test_strong_rrqr_shared_rng_matches_official_legacy_sampling(self):
+        generator = torch.Generator().manual_seed(17)
+        first_head = torch.randn(6000, 8, generator=generator)
+        second_head = torch.randn(6000, 8, generator=generator)
+        shared = np.random.RandomState(42)
+        first, first_evidence = selection.strong_rrqr_indices(
+            first_head,
+            4,
+            rng=shared,
+            return_evidence=True,
+        )
+        second, second_evidence = selection.strong_rrqr_indices(
+            second_head,
+            4,
+            rng=shared,
+            return_evidence=True,
+        )
+        reference = np.random.RandomState(42)
+        first_rows = reference.choice(6000, 5000, replace=False)
+        second_rows = reference.choice(6000, 5000, replace=False)
+        first_reference = selection.strong_rrqr_indices(
+            first_head[first_rows],
+            4,
+            seed=999,
+        )
+        second_reference = selection.strong_rrqr_indices(
+            second_head[second_rows],
+            4,
+            seed=999,
+        )
+        self.assertTrue(np.array_equal(first, first_reference))
+        self.assertTrue(np.array_equal(second, second_reference))
+        self.assertTrue(first_evidence["subsampled"])
+        self.assertTrue(second_evidence["subsampled"])
+
+    def test_strong_rrqr_evidence_reports_convergence_state(self):
+        values = torch.randn(32, 8)
+        _, evidence = selection.strong_rrqr_indices(
+            values,
+            4,
+            max_swaps=0,
+            return_evidence=True,
+        )
+        self.assertIn(evidence["termination"], {"strong_rrqr_condition", "max_swaps"})
+        self.assertEqual(
+            evidence["converged"],
+            evidence["termination"] == "strong_rrqr_condition",
+        )
 
     def test_nonfinite_activation_is_rejected(self):
         values = torch.eye(4)

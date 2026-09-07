@@ -33,7 +33,9 @@ def strong_rrqr_indices(
     f_param: float = 1.5,
     max_swaps: int = 20,
     seed: int = 42,
-) -> np.ndarray:
+    rng: np.random.RandomState | None = None,
+    return_evidence: bool = False,
+) -> np.ndarray | tuple[np.ndarray, dict]:
     """CPU adaptation of the pinned official Strong RRQR routine."""
 
     if activation.ndim != 2 or not activation.is_floating_point():
@@ -44,9 +46,14 @@ def strong_rrqr_indices(
     matrix = activation.detach().float().cpu().contiguous().numpy()
     if not np.isfinite(matrix).all():
         raise ValueError("DRRQR: activation contains non-finite values")
+    source_rows = matrix.shape[0]
+    if rng is None:
+        # The pinned reference calls np.random.seed(seed) once and then uses
+        # np.random.choice in layer/head order.  RandomState reproduces that
+        # legacy generator; load_keep_maps passes one shared instance.
+        rng = np.random.RandomState(seed)
     if matrix.shape[0] > 5000:
-        generator = np.random.default_rng(seed)
-        chosen = generator.choice(matrix.shape[0], 5000, replace=False)
+        chosen = rng.choice(matrix.shape[0], 5000, replace=False)
         matrix = matrix[chosen]
 
     _, r_matrix, permutation = scipy.linalg.qr(
@@ -55,10 +62,14 @@ def strong_rrqr_indices(
         mode="economic",
     )
     permutation = permutation.copy()
-    for _ in range(max_swaps):
+    swaps = 0
+    termination = "max_swaps"
+    final_max_rho = float("inf")
+    for _ in range(max_swaps + 1):
         a_block = r_matrix[:n_keep, :n_keep]
         b_block = r_matrix[:n_keep, n_keep:]
         if np.abs(np.diag(a_block)).min() < 1e-9:
+            termination = "singular_basis"
             break
         w_matrix = scipy.linalg.solve_triangular(a_block, b_block, lower=False)
         a_inverse = scipy.linalg.solve_triangular(
@@ -72,7 +83,11 @@ def strong_rrqr_indices(
         else:
             gamma = np.zeros(r_matrix.shape[1] - n_keep)
         rho = np.sqrt(np.abs(w_matrix) ** 2 + np.outer(1.0 / omega, gamma) ** 2)
-        if np.max(rho) <= f_param:
+        final_max_rho = float(np.max(rho))
+        if final_max_rho <= f_param:
+            termination = "strong_rrqr_condition"
+            break
+        if swaps == max_swaps:
             break
         left, right = np.unravel_index(np.argmax(rho), rho.shape)
         right += n_keep
@@ -84,7 +99,20 @@ def strong_rrqr_indices(
             matrix[:, permutation],
             mode="economic",
         )
-    return permutation[:n_keep]
+        swaps += 1
+    evidence = {
+        "source_rows": source_rows,
+        "selected_rows": matrix.shape[0],
+        "subsampled": source_rows > 5000,
+        "f_param": f_param,
+        "max_swaps": max_swaps,
+        "swaps": swaps,
+        "final_max_rho": final_max_rho,
+        "termination": termination,
+        "converged": termination == "strong_rrqr_condition",
+    }
+    selected = permutation[:n_keep]
+    return (selected, evidence) if return_evidence else selected
 
 
 def _layer_id(name: str) -> int:
@@ -176,6 +204,9 @@ def load_keep_maps(
         )
 
     local_heads = num_heads // tp_size
+    # Match the official pipeline's single np.random.seed(42) followed by
+    # sequential np.random.choice calls over layer/head order.
+    shared_rng = np.random.RandomState(42)
     keep_maps: dict[int, torch.Tensor] = {}
     evidence = {
         "schema": "drrqr-selection/v1",
@@ -211,23 +242,33 @@ def load_keep_maps(
                 old_dim,
             )
             rank_keep = []
+            rank_rrqr = []
             for local_head in range(local_heads):
-                selected = np.sort(
-                    strong_rrqr_indices(
-                        combined[:, local_head, :],
-                        new_dim,
-                        seed=42,
-                    )
+                selected, rrqr = strong_rrqr_indices(
+                    combined[:, local_head, :],
+                    new_dim,
+                    seed=42,
+                    rng=shared_rng,
+                    return_evidence=True,
                 )
+                if not rrqr["converged"]:
+                    raise RuntimeError(
+                        "DRRQR: Strong RRQR condition was not reached "
+                        f"for layer={layer} rank={rank} local_head={local_head}: "
+                        f"{rrqr}"
+                    )
+                selected = np.sort(selected)
                 global_head = rank * local_heads + local_head
                 values = (selected + global_head * old_dim).tolist()
                 global_keep.extend(values)
                 rank_keep.append(values)
+                rank_rrqr.append(rrqr)
             layer_record["ranks"][str(rank)] = {
                 "captures": len(payloads),
                 "q_shape": list(q.shape),
                 "k_shape": list(k.shape),
                 "keep_indices_by_local_head": rank_keep,
+                "rrqr_by_local_head": rank_rrqr,
             }
         if len(global_keep) != num_heads * new_dim or len(set(global_keep)) != len(global_keep):
             raise RuntimeError(f"DRRQR: invalid keep map for layer {layer}")
