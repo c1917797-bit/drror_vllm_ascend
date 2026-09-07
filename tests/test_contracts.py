@@ -35,7 +35,9 @@ class EnvironmentTests(unittest.TestCase):
                 os.environ,
                 {
                     "VLLM_ASCEND_DRRQR_CAPTURE_ENABLE": "1",
-                    "VLLM_ASCEND_DRRQR_CAPTURE_DIR": "C:\\captures",
+                    "VLLM_ASCEND_DRRQR_CAPTURE_DIR": str(
+                        Path.cwd().resolve() / "captures"
+                    ),
                 },
                 clear=True,
             ),
