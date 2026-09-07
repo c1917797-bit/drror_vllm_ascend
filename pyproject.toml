@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drror-vllm-ascend-plugin"
+version = "0.1.0"
+description = "Opt-in DRRQR state-reduction monkeypatch plugin for vLLM Ascend."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "c1917797-bit" }]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7", "numpy", "scipy", "safetensors"]
+
+[project.entry-points."vllm.general_plugins"]
+drror_vllm_ascend = "drror_vllm_ascend:register"
+
+[project.scripts]
+drror-prepare-plan = "drror_vllm_ascend.prepare:main"
+drror-audit-activation = "drror_vllm_ascend.audit:main"
+
+[tool.setuptools.packages.find]
+include = ["drror_vllm_ascend*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
