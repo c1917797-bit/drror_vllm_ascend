@@ -204,7 +204,10 @@ docker exec "${TREATMENT_CONTAINER}" npu-smi info
 docker exec -it "${TREATMENT_CONTAINER}" bash
 
 cd /cache/cch/drror_vllm_ascend
-git pull --ff-only origin main
+git fetch --prune origin codex/qwen38-drrqr-v023-abi-20260907
+git switch --detach FETCH_HEAD
+PLUGIN_COMMIT="$(git rev-parse HEAD)"
+test -z "$(git status --porcelain=v1)"
 pip install --no-deps -e .
 
 python - <<'PY'
