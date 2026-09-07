@@ -718,9 +718,17 @@ class WeightTransformTests(unittest.TestCase):
             plan.transform_weights(
                 iter(
                     [
-                        ("layers.0.linear_attn.in_proj_qkv.weight", qkv),
-                        ("layers.0.linear_attn.conv1d.weight", conv),
-                        ("layers.1.self_attn.q_proj.weight", full),
+                        (
+                            "model.language_model.layers.0.linear_attn."
+                            "in_proj_qkv.weight",
+                            qkv,
+                        ),
+                        (
+                            "model.language_model.layers.0.linear_attn."
+                            "conv1d.weight",
+                            conv,
+                        ),
+                        ("model.language_model.layers.1.self_attn.q_proj.weight", full),
                     ]
                 )
             )
@@ -735,12 +743,46 @@ class WeightTransformTests(unittest.TestCase):
         )
         self.assertTrue(
             torch.equal(
-                transformed["layers.0.linear_attn.in_proj_qkv.weight"],
+                transformed[
+                    "model.language_model.layers.0.linear_attn.in_proj_qkv.weight"
+                ],
                 expected,
             )
         )
         self.assertTrue(torch.equal(expected[8:], qkv[16:]))
-        self.assertIs(transformed["layers.1.self_attn.q_proj.weight"], full)
+        self.assertIs(
+            transformed["model.language_model.layers.1.self_attn.q_proj.weight"],
+            full,
+        )
+
+    def test_inner_loader_names_fail_closed(self):
+        plan = DrrqrPlan(
+            digest="c" * 64,
+            source_config_sha256="d" * 64,
+            source_index_sha256="e" * 64,
+            old_head_k_dim=4,
+            target_head_k_dim=2,
+            num_key_heads=2,
+            num_value_heads=4,
+            head_v_dim=3,
+            conv_kernel_dim=2,
+            hidden_size=5,
+            layer_types=("linear_attention", "full_attention"),
+            keep_indices=((0, (0, 2, 4, 7)),),
+        )
+        with self.assertRaisesRegex(ValueError, "unsupported packed weight name"):
+            list(
+                plan.transform_weights(
+                    iter(
+                        [
+                            (
+                                "layers.0.linear_attn.in_proj_qkv.weight",
+                                torch.zeros(28, 5),
+                            )
+                        ]
+                    )
+                )
+            )
 
 
 class ModelPatchTests(unittest.TestCase):

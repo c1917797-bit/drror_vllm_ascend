@@ -49,12 +49,16 @@ def apply_patches(config: DrrqrConfig) -> None:
     try:
         # The official Qwen3.8-27B config declares
         # architecture=Qwen3_5ForConditionalGeneration. vLLM therefore serves
-        # this Qwen3.8 checkpoint through Qwen3_5Model; the immutable plan and
-        # config hash enforce the actual checkpoint identity before loading.
+        # this Qwen3.8 checkpoint through the Qwen3_5* runtime ABI; the
+        # immutable plan and config hash enforce the actual checkpoint
+        # identity before loading.
         from vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn import (
             QwenGatedDeltaNetAttention,
         )
-        from vllm.model_executor.models.qwen3_5 import Qwen3_5Model
+        from vllm.model_executor.models.qwen3_5 import (
+            Qwen3_5ForConditionalGeneration,
+            Qwen3_5Model,
+        )
         from vllm_ascend.ops import gdn
         from vllm_ascend.worker.model_runner_v1 import NPUModelRunner
     except Exception as error:  # pragma: no cover - requires pinned runtime
@@ -142,7 +146,14 @@ def apply_patches(config: DrrqrConfig) -> None:
         verify_worker()
         install_decode_observer(QwenGatedDeltaNetAttention, gdn, config)
 
-    install_model_patch(Qwen3_5Model, config, prepare_runtime=prepare_runtime)
+    # Patch the top-level loader, which receives one complete checkpoint
+    # stream. AutoWeightsLoader may invoke Qwen3_5Model.load_weights once per
+    # module/shard group, so whole-plan coverage cannot be asserted there.
+    install_model_patch(
+        Qwen3_5ForConditionalGeneration,
+        config,
+        prepare_runtime=prepare_runtime,
+    )
     emit_evidence(
         config,
         "runtime_patches_installed",

@@ -22,7 +22,8 @@ OFFICIAL_INDEX_SHA256 = "77042094076611b69791a610065f28b7013b8c621795fa86ddccc8b
 OFFICIAL_COMMIT = "919d8667d951c385e08510bc1267c2e7049a4f56"
 OFFICIAL_RRQR_SHA256 = "fa4bacf516011ba1c88f2e0e92957bbe4513cc1bb6634912fdb0d06ba7821a62"
 WEIGHT_NAME = re.compile(
-    r"^layers\.(\d+)\.linear_attn\.(in_proj_qkv|conv1d)\.weight$"
+    r"^model\.language_model\.layers\.(\d+)\.linear_attn\."
+    r"(in_proj_qkv|conv1d)\.weight$"
 )
 HASH = re.compile(r"^[0-9a-f]{64}$")
 
@@ -255,7 +256,15 @@ class DrrqrPlan:
             raise ValueError("DRRQR: use the original packed safetensors loader")
 
     def transform_weights(self, weights: Any):
-        """Select Q/K and matching convolution rows before TP sharding."""
+        """Select Q/K and matching convolution rows before mapping/TP sharding.
+
+        This transformer is intentionally bound to the top-level
+        Qwen3_5ForConditionalGeneration loader.  Its input is the one complete
+        Hugging Face checkpoint stream, whose Qwen3.8 language weights retain
+        the ``model.language_model`` prefix.  Inner Qwen model loaders may be
+        called repeatedly by AutoWeightsLoader and therefore cannot prove
+        whole-checkpoint target coverage.
+        """
         import torch
 
         keeps = dict(self.keep_indices)
