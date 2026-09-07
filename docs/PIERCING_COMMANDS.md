@@ -31,7 +31,16 @@ test -d "${PLUGIN_PATH}/.git"
 npu-smi info
 sha256sum "${MODEL_PATH}/config.json" \
   "${MODEL_PATH}/model.safetensors.index.json"
+
+test "$(sha256sum "${MODEL_PATH}/config.json" | awk '{print $1}')" = \
+  '191e0af232104ed8b65258cf3fb2b842e288008baca7633c11b82a1ac7203aab'
+test "$(sha256sum "${MODEL_PATH}/model.safetensors.index.json" | awk '{print $1}')" = \
+  '77042094076611b69791a610065f28b7013b8c621795fa86ddccc8bac7d1b9df'
 ```
+
+These hashes pin official Qwen/Qwen3.8-27B revision
+`1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0`. A different revision requires
+an explicit source review and plugin update; do not bypass this gate.
 
 The colleague's HYPIC experiment used two Ascend 910C devices. This is a fresh
 four-card identity selected by the operator: host NPU4-7, container-visible

@@ -17,6 +17,7 @@ from .plan import (
     TARGET_MODEL_ID,
     TARGET_OUTER_MODEL_TYPE,
     TARGET_TEXT_MODEL_TYPE,
+    validate_official_checkpoint_hashes,
 )
 
 SOURCE_PREFIXES = (
@@ -259,6 +260,7 @@ def prepare_plan(
     )
     config_sha = hashlib.sha256(config_bytes).hexdigest()
     index_sha = hashlib.sha256(index_bytes).hexdigest()
+    validate_official_checkpoint_hashes(config_sha, index_sha)
     calibration_sha = selection.file_sha256(calibration_jsonl)
     keep_maps, selection_evidence = selection.load_keep_maps(
         capture_dir,

@@ -15,7 +15,12 @@ import torch
 from drror_vllm_ascend import audit, envs, prepare, selection
 from drror_vllm_ascend.envs import DrrqrConfig
 from drror_vllm_ascend.patches import capture, gdn, model
-from drror_vllm_ascend.plan import DrrqrPlan
+from drror_vllm_ascend.plan import (
+    OFFICIAL_CONFIG_SHA256,
+    OFFICIAL_INDEX_SHA256,
+    DrrqrPlan,
+    validate_official_checkpoint_hashes,
+)
 
 
 class EnvironmentTests(unittest.TestCase):
@@ -170,6 +175,14 @@ class PrepareTests(unittest.TestCase):
             [prepare._target_dim(128, ratio) for ratio in (0.2, 0.3, 0.5)],
             [102, 89, 64],
         )
+
+    def test_official_qwen38_revision_hashes_are_pinned(self):
+        validate_official_checkpoint_hashes(
+            OFFICIAL_CONFIG_SHA256,
+            OFFICIAL_INDEX_SHA256,
+        )
+        with self.assertRaisesRegex(ValueError, "official Qwen/Qwen3.8-27B"):
+            validate_official_checkpoint_hashes("0" * 64, OFFICIAL_INDEX_SHA256)
 
     def test_exact_qwen38_hybrid_metadata_is_accepted(self):
         with tempfile.TemporaryDirectory(prefix="drror-source-") as directory:

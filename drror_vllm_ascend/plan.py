@@ -16,6 +16,9 @@ TARGET_MODEL_ID = "Qwen/Qwen3.8-27B"
 TARGET_ARCHITECTURE = "Qwen3_5ForConditionalGeneration"
 TARGET_OUTER_MODEL_TYPE = "qwen3_5"
 TARGET_TEXT_MODEL_TYPE = "qwen3_5_text"
+OFFICIAL_MODEL_REVISION = "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0"
+OFFICIAL_CONFIG_SHA256 = "191e0af232104ed8b65258cf3fb2b842e288008baca7633c11b82a1ac7203aab"
+OFFICIAL_INDEX_SHA256 = "77042094076611b69791a610065f28b7013b8c621795fa86ddccc8bac7d1b9df"
 OFFICIAL_COMMIT = "919d8667d951c385e08510bc1267c2e7049a4f56"
 OFFICIAL_RRQR_SHA256 = "fa4bacf516011ba1c88f2e0e92957bbe4513cc1bb6634912fdb0d06ba7821a62"
 WEIGHT_NAME = re.compile(
@@ -36,6 +39,20 @@ def _positive_int(value: Any, name: str) -> int:
     if type(value) is not int or value <= 0:
         raise ValueError(f"DRRQR: {name} must be a positive integer")
     return value
+
+
+def validate_official_checkpoint_hashes(
+    config_sha256: str,
+    index_sha256: str,
+) -> None:
+    if (
+        config_sha256 != OFFICIAL_CONFIG_SHA256
+        or index_sha256 != OFFICIAL_INDEX_SHA256
+    ):
+        raise ValueError(
+            "DRRQR: checkpoint metadata does not match official "
+            f"Qwen/Qwen3.8-27B revision {OFFICIAL_MODEL_REVISION}"
+        )
 
 
 @dataclass(frozen=True)
@@ -76,6 +93,10 @@ class DrrqrPlan:
         for name in ("source_config_sha256", "source_index_sha256"):
             if not isinstance(data.get(name), str) or not HASH.fullmatch(data[name]):
                 raise ValueError(f"DRRQR: invalid {name}")
+        validate_official_checkpoint_hashes(
+            data["source_config_sha256"],
+            data["source_index_sha256"],
+        )
         provenance = data.get("provenance", {})
         if (
             not isinstance(provenance, dict)

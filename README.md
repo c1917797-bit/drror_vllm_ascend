@@ -18,7 +18,9 @@ immutable, hashed DRRQR plan.
 The official Qwen3.8-27B configuration declares the reused
 `Qwen3_5ForConditionalGeneration` architecture interface. The plugin accepts
 only plans labelled `Qwen/Qwen3.8-27B` and validates the original checkpoint
-configuration hash; it does not accept a Qwen3.5 checkpoint.
+configuration and safetensors-index hashes; it does not accept a Qwen3.5
+checkpoint. The current immutable model contract is official revision
+`1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0`.
 
 See [the piercing command runbook](docs/PIERCING_COMMANDS.md). No performance or
 quality claim is made until the NPU A/B gates in that runbook pass.
