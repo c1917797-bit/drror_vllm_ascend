@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 import importlib.metadata
+import inspect
 import logging
+from pathlib import Path
 
 from ..diagnostics import emit_evidence
 from ..envs import DrrqrConfig
+from ..plan import file_sha256
+
+EXPECTED_GDN_SHA256 = "d6ec29919268178f5bf6e70e689c1d273d04b1cb1d84dc94efa7bbbc35490816"
+EXPECTED_QWEN_SHA256 = "04f3de5372973770d71c5c05f2e8a5e221ec52b62cca7a1e302d9201b61b8adc"
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +42,9 @@ def _version(distribution: str) -> str:
 
 def apply_patches(config: DrrqrConfig) -> None:
     _ensure_ascend_global_patch()
+    versions = {name: _version(name) for name in ("vllm", "vllm-ascend")}
+    if any(value.split("+")[0] != "0.23.0" for value in versions.values()):
+        raise DrrqrRuntimeUnsupported(f"DRRQR: this adapter requires vLLM/vLLM-Ascend 0.23.0: {versions}")
     try:
         # The official Qwen3.8-27B config declares
         # architecture=Qwen3_5ForConditionalGeneration. vLLM therefore serves
@@ -55,15 +64,47 @@ def apply_patches(config: DrrqrConfig) -> None:
         hasattr(gdn, "chunk_gated_delta_rule"),
         hasattr(gdn, "get_forward_context"),
         hasattr(gdn, "AscendGatedDeltaNetAttention"),
-        hasattr(gdn.AscendGatedDeltaNetAttention, "_chunk_gated_delta_rule_fused"),
+        hasattr(gdn.AscendGatedDeltaNetAttention, "_forward_core"),
+        hasattr(QwenGatedDeltaNetAttention, "rearrange_mixed_qkv"),
     )
     if config.require_runtime_hooks and not all(required):
         raise DrrqrRuntimeUnsupported("DRRQR required Ascend GDN hooks are missing")
+    runtime_sources = {}
+    for name, source, expected in (
+        ("ascend_gdn", inspect.getsourcefile(gdn), EXPECTED_GDN_SHA256),
+        ("qwen_model", inspect.getsourcefile(Qwen3_5Model), EXPECTED_QWEN_SHA256),
+    ):
+        if source is None or file_sha256(Path(source)) != expected:
+            raise DrrqrRuntimeUnsupported(f"DRRQR: {name} source differs from the audited v0.23 image")
+        runtime_sources[name] = {"path": source, "sha256": expected}
+
+    def verify_worker():
+        # General plugins run before Ascend worker patches. Check at model
+        # construction, after the worker installs its real Qwen forward/core.
+        core = QwenGatedDeltaNetAttention._forward_core
+        core = getattr(core, "_drror_core_original", core)
+        if core is not gdn.AscendGatedDeltaNetAttention._forward_core:
+            raise DrrqrRuntimeUnsupported("DRRQR: Ascend Qwen worker core is not installed or has been replaced")
+        if core.__globals__.get("chunk_gated_delta_rule") is not gdn.chunk_gated_delta_rule:
+            raise DrrqrRuntimeUnsupported("DRRQR: Ascend core does not call the expected prefill module binding")
+        emit_evidence(
+            config,
+            "worker_dispatch_verified",
+            component="plugin",
+            plan_sha256=config.plan_sha256,
+            core_module=core.__module__,
+            core_source=inspect.getsourcefile(core),
+            qwen_class=QwenGatedDeltaNetAttention.__module__ + "." + QwenGatedDeltaNetAttention.__name__,
+            runtime_sources=runtime_sources,
+        )
 
     if config.capture_enable:
         from .capture import install_capture_patch
+        from .capture_binding import CaptureBinding, install_capture_model_patch
 
-        install_capture_patch(QwenGatedDeltaNetAttention, gdn, config)
+        binding = CaptureBinding(config)
+        install_capture_model_patch(Qwen3_5Model, config, binding, verify_worker=verify_worker)
+        install_capture_patch(QwenGatedDeltaNetAttention, gdn, config, binding=binding)
         emit_evidence(
             config,
             "runtime_patches_installed",
@@ -81,11 +122,16 @@ def apply_patches(config: DrrqrConfig) -> None:
         )
         return
 
-    from .gdn import install_fused_shape_guard
+    from .gdn import install_decode_observer, install_prefill_patch
     from .model import install_model_patch
 
-    install_fused_shape_guard(gdn, config)
-    install_model_patch(Qwen3_5Model, config)
+    install_prefill_patch(gdn, config)
+
+    def prepare_runtime(plan):
+        verify_worker()
+        install_decode_observer(QwenGatedDeltaNetAttention, gdn, config)
+
+    install_model_patch(Qwen3_5Model, config, prepare_runtime=prepare_runtime)
     emit_evidence(
         config,
         "runtime_patches_installed",

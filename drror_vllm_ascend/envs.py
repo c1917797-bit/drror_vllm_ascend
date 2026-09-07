@@ -51,6 +51,7 @@ class DrrqrConfig:
     capture_max_per_layer: int = 16
     source_config_sha256: str = ""
     calibration_sha256: str = ""
+    calibration_jsonl: str = ""
 
 
 def get_config() -> DrrqrConfig:
@@ -66,18 +67,11 @@ def get_config() -> DrrqrConfig:
         plan_sha256=os.getenv("VLLM_ASCEND_DRRQR_PLAN_SHA256", "").strip(),
         evidence_file=os.getenv("VLLM_ASCEND_DRRQR_EVIDENCE_FILE", "").strip(),
         capture_dir=os.getenv("VLLM_ASCEND_DRRQR_CAPTURE_DIR", "").strip(),
-        capture_max_tokens=_positive_int_env(
-            "VLLM_ASCEND_DRRQR_CAPTURE_MAX_TOKENS", 2048
-        ),
-        capture_max_per_layer=_positive_int_env(
-            "VLLM_ASCEND_DRRQR_CAPTURE_MAX_PER_LAYER", 16
-        ),
-        source_config_sha256=os.getenv(
-            "VLLM_ASCEND_DRRQR_SOURCE_CONFIG_SHA256", ""
-        ).strip(),
-        calibration_sha256=os.getenv(
-            "VLLM_ASCEND_DRRQR_CALIBRATION_SHA256", ""
-        ).strip(),
+        capture_max_tokens=_positive_int_env("VLLM_ASCEND_DRRQR_CAPTURE_MAX_TOKENS", 2048),
+        capture_max_per_layer=_positive_int_env("VLLM_ASCEND_DRRQR_CAPTURE_MAX_PER_LAYER", 16),
+        source_config_sha256=os.getenv("VLLM_ASCEND_DRRQR_SOURCE_CONFIG_SHA256", "").strip(),
+        calibration_sha256=os.getenv("VLLM_ASCEND_DRRQR_CALIBRATION_SHA256", "").strip(),
+        calibration_jsonl=os.getenv("VLLM_ASCEND_DRRQR_CALIBRATION_JSONL", "").strip(),
     )
     if config.enable and config.capture_enable:
         raise ValueError("DRRQR treatment and capture modes are mutually exclusive")
@@ -94,13 +88,11 @@ def get_config() -> DrrqrConfig:
         ):
             if not HASH.fullmatch(value):
                 raise ValueError(f"{name} must be an explicit lowercase SHA256")
+        if not config.calibration_jsonl or not Path(config.calibration_jsonl).is_absolute():
+            raise ValueError("VLLM_ASCEND_DRRQR_CALIBRATION_JSONL must be absolute")
         return config
     if not config.plan_path or not Path(config.plan_path).is_absolute():
-        raise ValueError(
-            "VLLM_ASCEND_DRRQR_PLAN_PATH must be an absolute path visible to every worker"
-        )
+        raise ValueError("VLLM_ASCEND_DRRQR_PLAN_PATH must be an absolute path visible to every worker")
     if not HASH.fullmatch(config.plan_sha256):
-        raise ValueError(
-            "VLLM_ASCEND_DRRQR_PLAN_SHA256 must be an explicit lowercase SHA256"
-        )
+        raise ValueError("VLLM_ASCEND_DRRQR_PLAN_SHA256 must be an explicit lowercase SHA256")
     return config

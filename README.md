@@ -24,3 +24,10 @@ checkpoint. The current immutable model contract is official revision
 
 See [the piercing command runbook](docs/PIERCING_COMMANDS.md). No performance or
 quality claim is made until the NPU A/B gates in that runbook pass.
+
+The current target is `/cache/austinov/Qwen3.8-27B` on the audited vLLM and
+vLLM-Ascend 0.23.0 image. This adapter verifies the target GDN/model source
+hashes, observes the actual module-global prefill function, and independently
+records a completed decode branch. Calibration uses a fresh, eager token-ID
+capture with runtime-verified model and request provenance. Three immutable
+plans retain Dk102, Dk89, and Dk64 for nominal 20%, 30%, and 50% pruning.

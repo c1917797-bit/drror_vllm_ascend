@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .calibration import read_calibration
 from .plan import (
     SCHEMA,
     TARGET_ARCHITECTURE,
@@ -107,17 +108,10 @@ def validate_source(
     }
     for name, expected in exact.items():
         if text.get(name) != expected:
-            raise ValueError(
-                f"DRRQR: Qwen3.8-27B {name} must be {expected}, got {text.get(name)!r}"
-            )
+            raise ValueError(f"DRRQR: Qwen3.8-27B {name} must be {expected}, got {text.get(name)!r}")
     if type(new_dim) is not int or not 0 < new_dim < old_dim:
         raise ValueError("DRRQR: target Dk must be between zero and 128")
-    if (
-        type(tp_size) is not int
-        or tp_size <= 0
-        or num_heads % tp_size
-        or num_value_heads % tp_size
-    ):
+    if type(tp_size) is not int or tp_size <= 0 or num_heads % tp_size or num_value_heads % tp_size:
         raise ValueError("DRRQR: TP must divide Q/K and V head counts")
     if num_value_heads % num_heads:
         raise ValueError("DRRQR: V head count must be divisible by Q/K heads")
@@ -125,17 +119,10 @@ def validate_source(
     layer_types = text.get("layer_types")
     if not isinstance(layer_types, list) or len(layer_types) != num_layers:
         raise ValueError("DRRQR: layer_types must describe all 64 layers")
-    expected_types = [
-        "full_attention" if (layer + 1) % 4 == 0 else "linear_attention"
-        for layer in range(64)
-    ]
+    expected_types = ["full_attention" if (layer + 1) % 4 == 0 else "linear_attention" for layer in range(64)]
     if layer_types != expected_types:
         raise ValueError("DRRQR: source does not have the Qwen3.8-27B 3:1 hybrid topology")
-    linear_layers = [
-        layer
-        for layer, kind in enumerate(layer_types)
-        if kind == "linear_attention"
-    ]
+    linear_layers = [layer for layer, kind in enumerate(layer_types) if kind == "linear_attention"]
 
     weight_map = index.get("weight_map")
     if not isinstance(weight_map, dict) or not weight_map:
@@ -156,16 +143,9 @@ def validate_source(
         if key in targets:
             raise ValueError(f"DRRQR: duplicate target tensor {key}")
         targets[key] = (name, shard)
-    expected_targets = {
-        (layer, component)
-        for layer in linear_layers
-        for component in ("in_proj_qkv", "conv1d")
-    }
+    expected_targets = {(layer, component) for layer in linear_layers for component in ("in_proj_qkv", "conv1d")}
     if set(targets) != expected_targets:
-        raise ValueError(
-            "DRRQR: target tensor coverage mismatch "
-            f"missing={sorted(expected_targets - set(targets))}"
-        )
+        raise ValueError(f"DRRQR: target tensor coverage mismatch missing={sorted(expected_targets - set(targets))}")
 
     packed_width = 2 * num_heads * old_dim + num_value_heads * value_dim
     shapes = {
@@ -262,6 +242,9 @@ def prepare_plan(
     index_sha = hashlib.sha256(index_bytes).hexdigest()
     validate_official_checkpoint_hashes(config_sha, index_sha)
     calibration_sha = selection.file_sha256(calibration_jsonl)
+    calibration_rows = read_calibration(calibration_jsonl, calibration_sha)
+    if len(calibration_rows) != captures_per_rank:
+        raise ValueError("DRRQR: calibration row count must equal captures_per_rank")
     keep_maps, selection_evidence = selection.load_keep_maps(
         capture_dir,
         expected_layer_ids=linear_layers,
@@ -272,6 +255,7 @@ def prepare_plan(
         captures_per_rank=captures_per_rank,
         source_config_sha256=config_sha,
         calibration_sha256=calibration_sha,
+        calibration_input_hashes=[row["input_ids_sha256"] for row in calibration_rows],
     )
     if set(keep_maps) != set(linear_layers):
         raise ValueError("DRRQR: selection layer coverage mismatch")
@@ -285,13 +269,8 @@ def prepare_plan(
             selected = values[head * target_dim : (head + 1) * target_dim]
             lower = head * text["linear_key_head_dim"]
             upper = (head + 1) * text["linear_key_head_dim"]
-            if selected != sorted(selected) or any(
-                index < lower or index >= upper
-                for index in selected
-            ):
-                raise ValueError(
-                    f"DRRQR: selection crosses head boundary in layer {layer}"
-                )
+            if selected != sorted(selected) or any(index < lower or index >= upper for index in selected):
+                raise ValueError(f"DRRQR: selection crosses head boundary in layer {layer}")
         keep_indices[str(layer)] = values
     if (
         selection.file_sha256(config_path) != config_sha
@@ -334,9 +313,7 @@ def prepare_plan(
         "target_model_id": TARGET_MODEL_ID,
         "pruning_ratio": pruning_ratio,
         "target_head_k_dim": target_dim,
-        "hf_overrides": {
-            "text_config": {"linear_key_head_dim": target_dim}
-        },
+        "hf_overrides": {"text_config": {"linear_key_head_dim": target_dim}},
         "environment": {
             "VLLM_ASCEND_DRRQR_ENABLE": "1",
             "VLLM_ASCEND_DRRQR_PLAN_PATH": str(output),

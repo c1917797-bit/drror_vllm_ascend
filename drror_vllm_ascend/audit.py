@@ -8,11 +8,15 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .patches.bootstrap import EXPECTED_GDN_SHA256, EXPECTED_QWEN_SHA256
+
 HASH = re.compile(r"^[0-9a-f]{64}$")
 WORKER_EVENTS = {
+    "worker_dispatch_verified",
     "model_configured",
     "weight_load_complete",
     "reduced_gdn_hot_path",
+    "reduced_gdn_decode_branch",
 }
 
 
@@ -25,9 +29,7 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
         try:
             value = json.loads(line)
         except json.JSONDecodeError as error:
-            raise ValueError(
-                f"DRRQR audit: invalid JSON on line {line_number}"
-            ) from error
+            raise ValueError(f"DRRQR audit: invalid JSON on line {line_number}") from error
         if not isinstance(value, dict):
             raise TypeError(f"DRRQR audit: line {line_number} is not an object")
         records.append(value)
@@ -61,22 +63,10 @@ def audit_activation(
     if missing_global:
         errors.append(f"missing global events: {missing_global}")
 
-    worker_records = [
-        record
-        for record in records
-        if record.get("event") in WORKER_EVENTS
-    ]
-    worker_pids = sorted(
-        {
-            record.get("pid")
-            for record in worker_records
-            if type(record.get("pid")) is int
-        }
-    )
+    worker_records = [record for record in records if record.get("event") in WORKER_EVENTS]
+    worker_pids = sorted({record.get("pid") for record in worker_records if type(record.get("pid")) is int})
     if len(worker_pids) != expected_workers:
-        errors.append(
-            f"expected {expected_workers} worker pids, observed {worker_pids}"
-        )
+        errors.append(f"expected {expected_workers} worker pids, observed {worker_pids}")
     per_worker = {}
     for pid in worker_pids:
         selected = [record for record in worker_records if record.get("pid") == pid]
@@ -89,7 +79,14 @@ def audit_activation(
             event = record.get("event")
             if record.get("plan_sha256") != plan_sha256:
                 errors.append(f"worker {pid} {event} has a different plan hash")
-            if event == "model_configured":
+            if event == "worker_dispatch_verified":
+                sources = record.get("runtime_sources") or {}
+                if (
+                    sources.get("ascend_gdn", {}).get("sha256") != EXPECTED_GDN_SHA256
+                    or sources.get("qwen_model", {}).get("sha256") != EXPECTED_QWEN_SHA256
+                ):
+                    errors.append(f"worker {pid} does not bind the audited v0.23 source hashes")
+            elif event == "model_configured":
                 if (
                     record.get("old_head_k_dim") != 128
                     or record.get("target_head_k_dim") != target_head_k_dim
@@ -105,8 +102,25 @@ def audit_activation(
                 or record.get("backend") != "chunk_gated_delta_rule"
                 or type(record.get("token_count")) is not int
                 or record.get("token_count") <= 0
+                or record.get("prebuilt_metadata_forwarded") is not True
+                or record.get("completed_python_call") is not True
+                or record.get("query_shape", [])[-1:] != [target_head_k_dim]
+                or record.get("key_shape", [])[-1:] != [target_head_k_dim]
+                or record.get("initial_state_shape", [])[-2:] != [target_head_k_dim, 128]
             ):
                 errors.append(f"worker {pid} has invalid reduced hot-path evidence")
+            elif event == "reduced_gdn_decode_branch" and (
+                record.get("key_head_dim") != target_head_k_dim
+                or record.get("value_head_dim") != 128
+                or record.get("backend") != "npu_recurrent_gated_delta_rule"
+                or record.get("completed_python_call") is not True
+                or type(record.get("token_count")) is not int
+                or record.get("token_count") <= 0
+                or record.get("query_shape", [])[-1:] != [target_head_k_dim]
+                or record.get("key_shape", [])[-1:] != [target_head_k_dim]
+                or record.get("state_shape", [])[-2:] != [128, target_head_k_dim]
+            ):
+                errors.append(f"worker {pid} has invalid reduced decode-branch evidence")
 
     treatment_patch_events = [
         record

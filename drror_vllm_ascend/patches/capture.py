@@ -11,10 +11,10 @@ from pathlib import Path
 from ..diagnostics import emit_evidence
 from ..envs import DrrqrConfig
 
-CAPTURE_SCHEMA = "drrqr-post-conv-qk/v1"
+CAPTURE_SCHEMA = "drrqr-post-conv-qk/v2"
 
 
-def install_capture_patch(gdn_cls, gdn_module, config: DrrqrConfig) -> None:
+def install_capture_patch(gdn_cls, gdn_module, config: DrrqrConfig, *, binding) -> None:
     """Capture pure-prefill tensors passed to post-conv QKV rearrangement."""
 
     original = gdn_cls.rearrange_mixed_qkv
@@ -42,8 +42,12 @@ def install_capture_patch(gdn_cls, gdn_module, config: DrrqrConfig) -> None:
             capture_root = Path(config.capture_dir)
             armed = capture_root / ".armed"
             if metadata is not None and getattr(metadata, "num_prefills", 0) > 0 and armed.is_file():
+                request = binding.current_request.get()
+                if not binding.verified or request is None:
+                    raise RuntimeError("DRRQR: capture lacks a validated model and actual calibration request binding")
                 if (
-                    getattr(metadata, "num_decodes", 0) != 0
+                    getattr(metadata, "num_prefills", 0) != 1
+                    or getattr(metadata, "num_decodes", 0) != 0
                     or getattr(metadata, "spec_sequence_masks", None) is not None
                 ):
                     raise RuntimeError("DRRQR: capture requires a pure non-speculative prefill")
@@ -54,14 +58,16 @@ def install_capture_patch(gdn_cls, gdn_module, config: DrrqrConfig) -> None:
                     capture_index = counts.get(key, 0)
                     if capture_index >= config.capture_max_per_layer:
                         return original(self, mixed_qkv)
+                    if request["row_index"] != capture_index:
+                        raise RuntimeError("DRRQR: calibration requests must arrive once in source row order")
                     counts[key] = capture_index + 1
 
                 local_key_dim = int(self.key_dim // self.tp_size)
                 if mixed_qkv.ndim != 2 or mixed_qkv.shape[1] < 2 * local_key_dim:
-                    raise RuntimeError(
-                        f"DRRQR: unexpected post-conv packed shape {tuple(mixed_qkv.shape)}"
-                    )
+                    raise RuntimeError(f"DRRQR: unexpected post-conv packed shape {tuple(mixed_qkv.shape)}")
                 token_count = min(int(mixed_qkv.shape[0]), config.capture_max_tokens)
+                if mixed_qkv.shape[0] != len(request["input_ids"]):
+                    raise RuntimeError("DRRQR: captured prefill is not the complete bound calibration request")
                 if token_count < int(mixed_qkv.shape[0]):
                     indices = gdn_module.torch.linspace(
                         0,
@@ -73,24 +79,22 @@ def install_capture_patch(gdn_cls, gdn_module, config: DrrqrConfig) -> None:
                 else:
                     sampled = mixed_qkv
                 q = sampled[:, :local_key_dim].detach().to(device="cpu").contiguous()
-                k = (
-                    sampled[:, local_key_dim : 2 * local_key_dim]
-                    .detach()
-                    .to(device="cpu")
-                    .contiguous()
-                )
+                k = sampled[:, local_key_dim : 2 * local_key_dim].detach().to(device="cpu").contiguous()
                 capture_root.mkdir(parents=True, exist_ok=True)
                 safe_prefix = prefix.replace("/", "_").replace(".", "_")
                 final_path = capture_root / (
-                    f"rank{tp_rank}_{safe_prefix}_capture{capture_index}_"
-                    f"{os.getpid()}_{time.time_ns()}.pt"
+                    f"rank{tp_rank}_{safe_prefix}_capture{capture_index}_{os.getpid()}_{time.time_ns()}.pt"
                 )
                 temporary = final_path.with_suffix(".pt.tmp")
                 payload = {
                     "schema": CAPTURE_SCHEMA,
                     "target_model_id": "Qwen/Qwen3.8-27B",
                     "source_config_sha256": config.source_config_sha256,
+                    "source_index_sha256": binding.source_index_sha256,
+                    "source_model_path": binding.source_model_path,
                     "calibration_sha256": config.calibration_sha256,
+                    "calibration_row_index": request["row_index"],
+                    "input_ids_sha256": request["input_ids_sha256"],
                     "stage": "post_conv_qk",
                     "prefix": prefix,
                     "tp_rank": tp_rank,

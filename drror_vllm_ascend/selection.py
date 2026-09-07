@@ -11,6 +11,7 @@ import scipy.linalg
 import torch
 
 from .patches.capture import CAPTURE_SCHEMA
+from .plan import OFFICIAL_INDEX_SHA256
 
 LAYER_RE = re.compile(r"(?:^|\.)layers\.(\d+)(?:\.|$)")
 OFFICIAL_COMMIT = "919d8667d951c385e08510bc1267c2e7049a4f56"
@@ -70,10 +71,7 @@ def strong_rrqr_indices(
             gamma = np.linalg.norm(r_matrix[n_keep:, n_keep:], axis=0)
         else:
             gamma = np.zeros(r_matrix.shape[1] - n_keep)
-        rho = np.sqrt(
-            np.abs(w_matrix) ** 2
-            + np.outer(1.0 / omega, gamma) ** 2
-        )
+        rho = np.sqrt(np.abs(w_matrix) ** 2 + np.outer(1.0 / omega, gamma) ** 2)
         if np.max(rho) <= f_param:
             break
         left, right = np.unravel_index(np.argmax(rho), rho.shape)
@@ -107,8 +105,12 @@ def load_keep_maps(
     captures_per_rank: int,
     source_config_sha256: str,
     calibration_sha256: str,
+    calibration_input_hashes: list[str],
 ) -> tuple[dict[int, torch.Tensor], dict]:
     """Validate bound captures and run Strong RRQR independently per head."""
+
+    if len(calibration_input_hashes) != captures_per_rank:
+        raise ValueError("DRRQR: calibration token hashes must cover every capture index")
 
     grouped: dict[tuple[int, int], list[dict]] = {}
     capture_files = sorted(capture_dir.glob("*.pt"))
@@ -120,6 +122,7 @@ def load_keep_maps(
             "schema": CAPTURE_SCHEMA,
             "target_model_id": "Qwen/Qwen3.8-27B",
             "source_config_sha256": source_config_sha256,
+            "source_index_sha256": OFFICIAL_INDEX_SHA256,
             "calibration_sha256": calibration_sha256,
             "stage": "post_conv_qk",
             "tp_size": tp_size,
@@ -127,9 +130,7 @@ def load_keep_maps(
         }
         for name, expected in required.items():
             if payload.get(name) != expected:
-                raise ValueError(
-                    f"DRRQR: capture {path.name} has invalid {name}"
-                )
+                raise ValueError(f"DRRQR: capture {path.name} has invalid {name}")
         try:
             layer = _layer_id(payload["prefix"])
             rank = int(payload["tp_rank"])
@@ -140,6 +141,14 @@ def load_keep_maps(
             raise ValueError(f"DRRQR: invalid capture metadata: {path}") from error
         if rank not in range(tp_size) or capture_index < 0:
             raise ValueError(f"DRRQR: invalid rank/index in {path}")
+        if (
+            capture_index >= len(calibration_input_hashes)
+            or payload.get("calibration_row_index") != capture_index
+            or payload.get("input_ids_sha256") != calibration_input_hashes[capture_index]
+            or not isinstance(payload.get("source_model_path"), str)
+            or not Path(payload["source_model_path"]).is_absolute()
+        ):
+            raise ValueError(f"DRRQR: capture is not bound to the expected calibration row: {path}")
         local_heads = num_heads // tp_size
         if local_key_dim != local_heads * old_dim:
             raise ValueError(f"DRRQR: invalid local key width in {path}")
@@ -158,11 +167,7 @@ def load_keep_maps(
             raise ValueError(f"DRRQR: invalid Q/K tensors in {path}")
         grouped.setdefault((layer, rank), []).append(payload)
 
-    expected_keys = {
-        (layer, rank)
-        for layer in expected_layer_ids
-        for rank in range(tp_size)
-    }
+    expected_keys = {(layer, rank) for layer in expected_layer_ids for rank in range(tp_size)}
     if set(grouped) != expected_keys:
         raise RuntimeError(
             "DRRQR: capture coverage mismatch "
@@ -183,10 +188,7 @@ def load_keep_maps(
         "seed": 42,
         "capture_file_count": len(capture_files),
         "capture_manifest_sha256": hashlib.sha256(
-            "".join(
-                f"{path.name}:{file_sha256(path)}\n"
-                for path in capture_files
-            ).encode()
+            "".join(f"{path.name}:{file_sha256(path)}\n" for path in capture_files).encode()
         ).hexdigest(),
         "layers": {},
     }
@@ -200,9 +202,7 @@ def load_keep_maps(
             )
             indexes = [int(item["capture_index"]) for item in payloads]
             if indexes != list(range(captures_per_rank)):
-                raise RuntimeError(
-                    f"DRRQR: layer {layer} rank {rank} capture indexes {indexes}"
-                )
+                raise RuntimeError(f"DRRQR: layer {layer} rank {rank} capture indexes {indexes}")
             q = torch.cat([item["q"] for item in payloads], dim=0)
             k = torch.cat([item["k"] for item in payloads], dim=0)
             combined = torch.cat((q, k), dim=0).view(
@@ -229,10 +229,7 @@ def load_keep_maps(
                 "k_shape": list(k.shape),
                 "keep_indices_by_local_head": rank_keep,
             }
-        if (
-            len(global_keep) != num_heads * new_dim
-            or len(set(global_keep)) != len(global_keep)
-        ):
+        if len(global_keep) != num_heads * new_dim or len(set(global_keep)) != len(global_keep):
             raise RuntimeError(f"DRRQR: invalid keep map for layer {layer}")
         keep_maps[layer] = torch.tensor(global_keep, dtype=torch.long)
         layer_record["global_keep_indices"] = global_keep

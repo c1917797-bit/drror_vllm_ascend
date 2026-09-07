@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import contextvars
 import copy
+import hashlib
 import json
 import os
 import tempfile
@@ -12,9 +14,9 @@ from unittest import mock
 import numpy as np
 import torch
 
-from drror_vllm_ascend import audit, envs, prepare, selection
+from drror_vllm_ascend import audit, calibration, envs, prepare, selection
 from drror_vllm_ascend.envs import DrrqrConfig
-from drror_vllm_ascend.patches import capture, gdn, model
+from drror_vllm_ascend.patches import bootstrap, capture, capture_binding, gdn, model
 from drror_vllm_ascend.plan import (
     OFFICIAL_CONFIG_SHA256,
     OFFICIAL_INDEX_SHA256,
@@ -28,25 +30,31 @@ class EnvironmentTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertFalse(envs.get_config().enable)
             self.assertFalse(envs.get_config().capture_enable)
-        with mock.patch.dict(
-            os.environ,
-            {
-                "VLLM_ASCEND_DRRQR_CAPTURE_ENABLE": "1",
-                "VLLM_ASCEND_DRRQR_CAPTURE_DIR": "C:\\captures",
-            },
-            clear=True,
-        ), self.assertRaisesRegex(ValueError, "SOURCE_CONFIG_SHA256"):
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "VLLM_ASCEND_DRRQR_CAPTURE_ENABLE": "1",
+                    "VLLM_ASCEND_DRRQR_CAPTURE_DIR": "C:\\captures",
+                },
+                clear=True,
+            ),
+            self.assertRaisesRegex(ValueError, "SOURCE_CONFIG_SHA256"),
+        ):
             envs.get_config()
 
     def test_capture_and_treatment_are_mutually_exclusive(self):
-        with mock.patch.dict(
-            os.environ,
-            {
-                "VLLM_ASCEND_DRRQR_ENABLE": "1",
-                "VLLM_ASCEND_DRRQR_CAPTURE_ENABLE": "1",
-            },
-            clear=True,
-        ), self.assertRaisesRegex(ValueError, "mutually exclusive"):
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "VLLM_ASCEND_DRRQR_ENABLE": "1",
+                    "VLLM_ASCEND_DRRQR_CAPTURE_ENABLE": "1",
+                },
+                clear=True,
+            ),
+            self.assertRaisesRegex(ValueError, "mutually exclusive"),
+        ):
             envs.get_config()
 
 
@@ -89,6 +97,23 @@ class CapturePatchTests(unittest.TestCase):
             calibration_sha256="b" * 64,
             evidence_file=str(self.evidence),
         )
+        self.binding = types.SimpleNamespace(
+            verified=True,
+            source_model_path=str(self.root),
+            source_index_sha256="c" * 64,
+            current_request=contextvars.ContextVar(
+                "test_capture_request",
+                default=None,
+            ),
+        )
+        request_token = self.binding.current_request.set(
+            {
+                "row_index": 0,
+                "input_ids": [1, 2, 3, 4, 5],
+                "input_ids_sha256": calibration.token_sha256([1, 2, 3, 4, 5]),
+            }
+        )
+        self.addCleanup(self.binding.current_request.reset, request_token)
 
     def instance(self):
         value = self.FakeGdn()
@@ -101,7 +126,7 @@ class CapturePatchTests(unittest.TestCase):
         return value
 
     def test_bounded_post_conv_capture_with_provenance(self):
-        capture.install_capture_patch(self.FakeGdn, self.module, self.config)
+        capture.install_capture_patch(self.FakeGdn, self.module, self.config, binding=self.binding)
         instance = self.instance()
         packed = torch.arange(60, dtype=torch.float32).reshape(5, 12)
         instance.rearrange_mixed_qkv(packed)
@@ -113,23 +138,340 @@ class CapturePatchTests(unittest.TestCase):
         self.assertEqual(payload["target_model_id"], "Qwen/Qwen3.8-27B")
         self.assertEqual(payload["source_config_sha256"], "a" * 64)
         self.assertEqual(payload["calibration_sha256"], "b" * 64)
+        self.assertEqual(payload["source_index_sha256"], "c" * 64)
+        self.assertEqual(payload["calibration_row_index"], 0)
+        self.assertEqual(payload["input_ids_sha256"], calibration.token_sha256([1, 2, 3, 4, 5]))
         self.assertEqual(payload["q"].shape, (3, 4))
         self.assertEqual(payload["k"].shape, (3, 4))
         self.assertEqual(instance.original_calls, 2)
-        records = [
-            json.loads(line)
-            for line in self.evidence.read_text(encoding="utf-8").splitlines()
-        ]
+        records = [json.loads(line) for line in self.evidence.read_text(encoding="utf-8").splitlines()]
         self.assertEqual([row["event"] for row in records], ["post_conv_qk_capture_written"])
 
     def test_mixed_decode_capture_fails_closed(self):
-        capture.install_capture_patch(self.FakeGdn, self.module, self.config)
+        capture.install_capture_patch(self.FakeGdn, self.module, self.config, binding=self.binding)
         self.metadata.num_decodes = 1
         with self.assertRaisesRegex(RuntimeError, "pure non-speculative prefill"):
             self.instance().rearrange_mixed_qkv(torch.ones(2, 12))
 
+    def test_capture_requires_actual_model_and_request_binding(self):
+        capture.install_capture_patch(self.FakeGdn, self.module, self.config, binding=self.binding)
+        self.binding.verified = False
+        with self.assertRaisesRegex(RuntimeError, "validated model"):
+            self.instance().rearrange_mixed_qkv(torch.ones(5, 12))
+        self.binding.verified = True
+        token = self.binding.current_request.set(None)
+        try:
+            with self.assertRaisesRegex(RuntimeError, "validated model"):
+                self.instance().rearrange_mixed_qkv(torch.ones(5, 12))
+        finally:
+            self.binding.current_request.reset(token)
+
+
+class CaptureBindingTests(unittest.TestCase):
+    def test_calibration_file_and_actual_tokens_are_bound(self):
+        with tempfile.TemporaryDirectory(prefix="drror-binding-") as directory:
+            path = Path(directory) / "calibration.jsonl"
+            path.write_text('{"input_ids":[4,8,12]}\n', encoding="utf-8")
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            rows = calibration.read_calibration(path, digest)
+            binding = capture_binding.CaptureBinding(DrrqrConfig())
+            binding.rows, binding.verified = rows, True
+            self.assertEqual(binding.request(torch.tensor([4, 8, 12]))["row_index"], 0)
+            for ids in (torch.tensor([4, 8]), torch.tensor([4, 9, 12]), None):
+                with self.subTest(ids=ids), self.assertRaises(RuntimeError):
+                    binding.request(ids)
+            path.write_text('{"input_ids":[1,2,3]}\n', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "hash mismatch"):
+                calibration.read_calibration(path, digest)
+
+    def test_model_forward_request_context_is_reset_after_failure(self):
+        with tempfile.TemporaryDirectory(prefix="drror-forward-") as directory:
+            config = DrrqrConfig(capture_enable=True, capture_dir=directory)
+            binding = capture_binding.CaptureBinding(config)
+            binding.verified = True
+            binding.rows = [{"input_ids": [1, 2], "row_index": 0, "input_ids_sha256": calibration.token_sha256([1, 2])}]
+            events = []
+
+            class Model:
+                def __init__(self, *, vllm_config, prefix=""):
+                    events.append("constructed")
+
+                def forward(self, input_ids, positions=None):
+                    events.append(binding.current_request.get())
+                    raise RuntimeError("synthetic kernel failure")
+
+            with mock.patch.object(binding, "bind", side_effect=lambda config: events.append("bound")):
+                capture_binding.install_capture_model_patch(Model, config, binding)
+                instance = Model(vllm_config=object())
+            self.assertEqual(events[:2], ["bound", "constructed"])
+            (Path(directory) / ".armed").touch()
+            with self.assertRaisesRegex(RuntimeError, "synthetic kernel failure"):
+                instance.forward(torch.tensor([1, 2]))
+            self.assertEqual(events[-1]["row_index"], 0)
+            self.assertIsNone(binding.current_request.get())
+
+    def test_capture_binding_checks_actual_disk_and_runtime_metadata(self):
+        with tempfile.TemporaryDirectory(prefix="drror-source-bind-") as directory:
+            root = Path(directory)
+            source = PrepareTests().qwen38_config()
+            (root / "config.json").write_text(json.dumps(source), encoding="utf-8")
+            (root / "model.safetensors.index.json").write_text('{"weight_map":{}}', encoding="utf-8")
+            calibration_path = root / "calibration.jsonl"
+            calibration_path.write_text('{"input_ids":[1,2,3]}\n', encoding="utf-8")
+            source_sha = hashlib.sha256((root / "config.json").read_bytes()).hexdigest()
+            config = DrrqrConfig(
+                capture_enable=True,
+                capture_max_per_layer=1,
+                source_config_sha256=source_sha,
+                calibration_jsonl=str(calibration_path),
+                calibration_sha256=hashlib.sha256(calibration_path.read_bytes()).hexdigest(),
+            )
+            runtime = types.SimpleNamespace(
+                model_config=types.SimpleNamespace(
+                    model=str(root),
+                    hf_text_config=types.SimpleNamespace(**source["text_config"]),
+                    dtype=torch.bfloat16,
+                    quantization=None,
+                    enforce_eager=True,
+                ),
+                parallel_config=types.SimpleNamespace(tensor_parallel_size=4),
+                lora_config=None,
+                speculative_config=None,
+            )
+            # Synthetic small files cannot have the official model's hashes or
+            # giant tensor headers. Isolate those independently tested gates.
+            with (
+                mock.patch.object(capture_binding, "validate_official_checkpoint_hashes") as check_hashes,
+                mock.patch.object(
+                    capture_binding, "validate_source", return_value=(source["text_config"], list(range(48)))
+                ),
+            ):
+                binding = capture_binding.CaptureBinding(config)
+                binding.bind(runtime)
+                self.assertTrue(binding.verified)
+                self.assertEqual(check_hashes.call_args.args[0], source_sha)
+                runtime.model_config.hf_text_config.linear_key_head_dim = 64
+                with self.assertRaisesRegex(ValueError, "runtime overrides source"):
+                    capture_binding.CaptureBinding(config).bind(runtime)
+                runtime.model_config.hf_text_config.linear_key_head_dim = 128
+                (root / "config.json").write_text(json.dumps(source) + " ", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "loaded capture model differs"):
+                    capture_binding.CaptureBinding(config).bind(runtime)
+
+
+class V023PrefillTests(unittest.TestCase):
+    def module(self, *, fail=False):
+        calls = []
+
+        def chunk(
+            q,
+            k,
+            v,
+            g,
+            beta,
+            scale=None,
+            initial_state=None,
+            output_final_state=False,
+            cu_seqlens=None,
+            prebuilt_meta=None,
+            head_first=False,
+            use_qk_l2norm_in_kernel=False,
+        ):
+            calls.append(locals())
+            if fail:
+                raise RuntimeError("synthetic kernel failure")
+            return v, initial_state
+
+        # The real v0.23 module has no fused method. Do not add one to this fake.
+        return types.SimpleNamespace(chunk_gated_delta_rule=chunk), calls
+
+    def test_direct_v023_prefill_preserves_three_ratios_and_multisequence_metadata(self):
+        for dk in (102, 89, 64):
+            with self.subTest(dk=dk), tempfile.TemporaryDirectory(prefix="drror-v023-") as directory:
+                evidence = Path(directory) / "evidence.jsonl"
+                module, calls = self.module()
+                config = DrrqrConfig(enable=True, plan_path="/plan", plan_sha256="a" * 64, evidence_file=str(evidence))
+                gdn.install_prefill_patch(module, config)
+                installed = module.chunk_gated_delta_rule
+                gdn.install_prefill_patch(module, config)
+                self.assertIs(module.chunk_gated_delta_rule, installed)
+                q = torch.zeros(1, 130, 4, dk, dtype=torch.bfloat16)
+                v = torch.ones(1, 130, 12, 128, dtype=torch.bfloat16)
+                state = torch.zeros(2, 12, dk, 128)
+                starts = torch.tensor([0, 65, 130])
+                chunks = types.SimpleNamespace(chunk_indices_chunk64_host=(0, 0, 0, 1, 1, 0, 1, 1))
+                for _ in range(2):
+                    result = module.chunk_gated_delta_rule(
+                        q,
+                        q,
+                        v,
+                        None,
+                        None,
+                        initial_state=state,
+                        cu_seqlens=starts,
+                        prebuilt_meta=chunks,
+                        output_final_state=True,
+                        use_qk_l2norm_in_kernel=True,
+                    )
+                    self.assertIs(result[0], v)
+                    self.assertIs(result[1], state)
+                self.assertIs(calls[0]["prebuilt_meta"], chunks)
+                self.assertIs(calls[0]["cu_seqlens"], starts)
+                self.assertIs(calls[0]["initial_state"], state)
+                self.assertIsNone(calls[0]["scale"])
+                rows = [json.loads(line) for line in evidence.read_text().splitlines()]
+                self.assertEqual(len(rows), 1)
+                self.assertEqual(rows[0]["sequence_count"], 2)
+                self.assertEqual(rows[0]["key_head_dim"], dk)
+                self.assertTrue(rows[0]["completed_python_call"])
+
+    def test_failed_kernel_does_not_emit_success_evidence(self):
+        with tempfile.TemporaryDirectory(prefix="drror-v023-fail-") as directory:
+            evidence = Path(directory) / "evidence.jsonl"
+            module, _ = self.module(fail=True)
+            gdn.install_prefill_patch(module, DrrqrConfig(enable=True, evidence_file=str(evidence)))
+            q = torch.zeros(1, 2, 4, 64)
+            v = torch.zeros(1, 2, 12, 128)
+            with self.assertRaisesRegex(RuntimeError, "synthetic kernel failure"):
+                module.chunk_gated_delta_rule(
+                    q,
+                    q,
+                    v,
+                    None,
+                    None,
+                    initial_state=torch.zeros(1, 12, 64, 128),
+                    cu_seqlens=torch.tensor([0, 2]),
+                    prebuilt_meta=object(),
+                    use_qk_l2norm_in_kernel=True,
+                )
+            self.assertFalse(evidence.exists())
+
+    def test_missing_metadata_or_wrong_state_fails_before_kernel(self):
+        module, calls = self.module()
+        gdn.install_prefill_patch(module, DrrqrConfig(enable=True))
+        q = torch.zeros(1, 2, 4, 89)
+        v = torch.zeros(1, 2, 12, 128)
+        for state, meta in ((torch.zeros(1, 12, 89, 128), None), (torch.zeros(1, 12, 128, 89), object())):
+            with self.assertRaisesRegex(RuntimeError, "original state layout"):
+                module.chunk_gated_delta_rule(
+                    q,
+                    q,
+                    v,
+                    None,
+                    None,
+                    initial_state=state,
+                    cu_seqlens=torch.tensor([0, 2]),
+                    prebuilt_meta=meta,
+                    use_qk_l2norm_in_kernel=True,
+                )
+        self.assertEqual(calls, [])
+
+
+class V023DecodeTests(unittest.TestCase):
+    def test_decode_observer_preserves_core_and_records_actual_shapes(self):
+        for dk in (64, 89, 102):
+            with self.subTest(dk=dk), tempfile.TemporaryDirectory(prefix="drror-decode-") as directory:
+                evidence = Path(directory) / "evidence.jsonl"
+                metadata = types.SimpleNamespace(num_decodes=2, num_decode_tokens=2, spec_sequence_masks=None)
+                module = types.SimpleNamespace(
+                    get_forward_context=lambda meta=metadata: types.SimpleNamespace(attn_metadata={"layer": meta})
+                )
+                calls = []
+
+                class Gdn:
+                    prefix = "layer"
+
+                    def __init__(self, dim=dk, call_log=calls):
+                        self.dim, self.call_log = dim, call_log
+                        self.kv_cache = [None, torch.zeros(4, 12, 128, dim)]
+
+                    def rearrange_mixed_qkv(self, packed):
+                        if packed is None:
+                            return None, None, None
+                        return (
+                            torch.zeros(1, 2, 4, self.dim),
+                            torch.zeros(1, 2, 4, self.dim),
+                            torch.zeros(1, 2, 12, 128),
+                        )
+
+                    def _forward_core(self, mixed_qkv, b, a, core_attn_out):
+                        self.call_log.append((mixed_qkv, core_attn_out))
+                        self.rearrange_mixed_qkv(None)
+                        self.rearrange_mixed_qkv(mixed_qkv)
+                        return core_attn_out
+
+                config = DrrqrConfig(enable=True, evidence_file=str(evidence))
+                original_core = Gdn._forward_core
+                gdn.install_decode_observer(Gdn, module, config)
+                installed = Gdn._forward_core
+                gdn.install_decode_observer(Gdn, module, config)
+                self.assertIs(Gdn._forward_core, installed)
+                self.assertIs(Gdn._forward_core._drror_core_original, original_core)
+                packed, output = torch.zeros(2, 1024), torch.zeros(2, 12, 128)
+                for _ in range(2):
+                    self.assertIs(Gdn()._forward_core(packed, None, None, output), output)
+                self.assertEqual(len(calls), 2)
+                self.assertIs(calls[0][0], packed)
+                row = json.loads(evidence.read_text().strip())
+                self.assertEqual(row["event"], "reduced_gdn_decode_branch")
+                self.assertEqual(row["query_shape"], [1, 2, 4, dk])
+                self.assertEqual(row["state_shape"], [4, 12, 128, dk])
+                self.assertEqual(row["backend"], "npu_recurrent_gated_delta_rule")
+
 
 class SelectionTests(unittest.TestCase):
+    def test_v2_capture_requires_matching_model_index_and_actual_token_row(self):
+        with tempfile.TemporaryDirectory(prefix="drror-selection-binding-") as directory:
+            root = Path(directory)
+            digest = calibration.token_sha256(list(range(32)))
+            payload = {
+                "schema": capture.CAPTURE_SCHEMA,
+                "target_model_id": "Qwen/Qwen3.8-27B",
+                "source_config_sha256": "a" * 64,
+                "source_index_sha256": OFFICIAL_INDEX_SHA256,
+                "source_model_path": str(root),
+                "calibration_sha256": "b" * 64,
+                "stage": "post_conv_qk",
+                "tp_size": 1,
+                "old_head_k_dim": 4,
+                "prefix": "model.layers.0.linear_attn",
+                "tp_rank": 0,
+                "capture_index": 0,
+                "calibration_row_index": 0,
+                "input_ids_sha256": digest,
+                "local_key_dim": 8,
+                "q": torch.randn(32, 8),
+                "k": torch.randn(32, 8),
+            }
+            path = root / "capture.pt"
+            arguments = {
+                "expected_layer_ids": [0],
+                "tp_size": 1,
+                "num_heads": 2,
+                "old_dim": 4,
+                "new_dim": 2,
+                "captures_per_rank": 1,
+                "source_config_sha256": "a" * 64,
+                "calibration_sha256": "b" * 64,
+                "calibration_input_hashes": [digest],
+            }
+            torch.save(payload, path)
+            with mock.patch.object(selection, "strong_rrqr_indices", return_value=np.array([0, 2])):
+                keeps, _ = selection.load_keep_maps(root, **arguments)
+            self.assertEqual(keeps[0].tolist(), [0, 2, 4, 6])
+            for field, value in (
+                ("schema", "drrqr-post-conv-qk/v1"),
+                ("source_index_sha256", "c" * 64),
+                ("calibration_row_index", 1),
+                ("input_ids_sha256", "d" * 64),
+            ):
+                with self.subTest(field=field):
+                    invalid = dict(payload)
+                    invalid[field] = value
+                    torch.save(invalid, path)
+                    with self.assertRaises(ValueError):
+                        selection.load_keep_maps(root, **arguments)
+
     def test_strong_rrqr_is_deterministic_and_bounded(self):
         generator = torch.Generator().manual_seed(7)
         values = torch.randn(6000, 8, generator=generator)
@@ -148,10 +490,7 @@ class SelectionTests(unittest.TestCase):
 
 class PrepareTests(unittest.TestCase):
     def qwen38_config(self):
-        types_ = [
-            "full_attention" if (layer + 1) % 4 == 0 else "linear_attention"
-            for layer in range(64)
-        ]
+        types_ = ["full_attention" if (layer + 1) % 4 == 0 else "linear_attention" for layer in range(64)]
         return {
             "architectures": ["Qwen3_5ForConditionalGeneration"],
             "model_type": "qwen3_5",
@@ -191,9 +530,7 @@ class PrepareTests(unittest.TestCase):
             shard.touch()
             config = self.qwen38_config()
             linear_layers = [
-                index
-                for index, kind in enumerate(config["text_config"]["layer_types"])
-                if kind == "linear_attention"
+                index for index, kind in enumerate(config["text_config"]["layer_types"]) if kind == "linear_attention"
             ]
             weight_map = {}
             for layer in linear_layers:
@@ -357,126 +694,6 @@ class ModelPatchTests(unittest.TestCase):
                 instance.load_weights(iter([("weight", torch.ones(1))]))
 
 
-class GdnHotPathTests(unittest.TestCase):
-    def test_reduced_shape_emits_hot_path_once(self):
-        with tempfile.TemporaryDirectory(prefix="drror-gdn-") as directory:
-            evidence = Path(directory) / "evidence.jsonl"
-
-            class Target:
-                @staticmethod
-                def _chunk_gated_delta_rule_fused(*args):
-                    return args[2], args[5]
-
-            calls = []
-            lengths = torch.tensor([0, 3])
-            chunk = object()
-            candidate = types.SimpleNamespace(
-                prefill_query_start_loc=lengths,
-                non_spec_prefill_metadata=types.SimpleNamespace(chunk=chunk),
-            )
-
-            def fallback(**kwargs):
-                calls.append(kwargs)
-                return kwargs["v"], kwargs["initial_state"] + 1
-
-            module = types.SimpleNamespace(
-                AscendGatedDeltaNetAttention=Target,
-                get_forward_context=lambda: types.SimpleNamespace(
-                    attn_metadata={"linear": candidate}
-                ),
-                chunk_gated_delta_rule=fallback,
-            )
-            config = DrrqrConfig(
-                enable=True,
-                plan_path="/plan.json",
-                plan_sha256="1" * 64,
-                evidence_file=str(evidence),
-            )
-            gdn.install_fused_shape_guard(module, config)
-            q = torch.zeros(1, 3, 4, 102)
-            v = torch.ones(1, 3, 12, 128)
-            state = torch.zeros(1, 12, 128, 102)
-            for _ in range(2):
-                Target._chunk_gated_delta_rule_fused(
-                    q,
-                    q,
-                    v,
-                    torch.zeros(1, 3, 12),
-                    torch.ones(1, 3, 12),
-                    state,
-                    lengths,
-                    102**-0.5,
-                )
-            self.assertEqual(len(calls), 2)
-            records = [
-                json.loads(line)
-                for line in evidence.read_text(encoding="utf-8").splitlines()
-            ]
-            self.assertEqual(
-                [row["event"] for row in records],
-                ["reduced_gdn_hot_path"],
-            )
-            self.assertEqual(records[0]["key_head_dim"], 102)
-
-    def test_two_65_token_requests_preserve_prebuilt_chunk_metadata(self):
-        with tempfile.TemporaryDirectory(prefix="drror-gdn-multiseq-") as directory:
-            evidence = Path(directory) / "evidence.jsonl"
-
-            class Target:
-                @staticmethod
-                def _chunk_gated_delta_rule_fused(*args):
-                    return args[2], args[5]
-
-            starts = torch.tensor([0, 65, 130])
-            chunk = object()
-            candidate = types.SimpleNamespace(
-                prefill_query_start_loc=starts,
-                non_spec_prefill_metadata=types.SimpleNamespace(chunk=chunk),
-            )
-            calls = []
-
-            def fallback(**kwargs):
-                calls.append(kwargs)
-                return kwargs["v"], kwargs["initial_state"]
-
-            module = types.SimpleNamespace(
-                AscendGatedDeltaNetAttention=Target,
-                get_forward_context=lambda: types.SimpleNamespace(
-                    attn_metadata={"linear": candidate}
-                ),
-                chunk_gated_delta_rule=fallback,
-            )
-            config = DrrqrConfig(
-                enable=True,
-                plan_path="/plan.json",
-                plan_sha256="3" * 64,
-                evidence_file=str(evidence),
-            )
-            gdn.install_fused_shape_guard(module, config)
-            q = torch.zeros(1, 130, 4, 102)
-            v = torch.ones(1, 130, 12, 128)
-            state = torch.zeros(1, 12, 128, 102)
-            Target._chunk_gated_delta_rule_fused(
-                q,
-                q,
-                v,
-                torch.zeros(1, 130, 12),
-                torch.ones(1, 130, 12),
-                state,
-                starts,
-                102**-0.5,
-            )
-            self.assertEqual(len(calls), 1)
-            self.assertIs(calls[0]["prebuilt_meta"], chunk)
-            self.assertIs(calls[0]["cu_seqlens"], starts)
-            records = [
-                json.loads(line)
-                for line in evidence.read_text(encoding="utf-8").splitlines()
-            ]
-            self.assertEqual(records[0]["sequence_count"], 2)
-            self.assertEqual(records[0]["token_count"], 130)
-
-
 class ActivationAuditTests(unittest.TestCase):
     def test_tp4_complete_evidence_passes_and_missing_hot_path_fails(self):
         with tempfile.TemporaryDirectory(prefix="drror-audit-") as directory:
@@ -501,6 +718,17 @@ class ActivationAuditTests(unittest.TestCase):
             for pid in range(1, 5):
                 rows.extend(
                     [
+                        {
+                            "schema": "drror-vllm-ascend-evidence/v1",
+                            "event": "worker_dispatch_verified",
+                            "component": "plugin",
+                            "pid": pid,
+                            "plan_sha256": digest,
+                            "runtime_sources": {
+                                "ascend_gdn": {"sha256": bootstrap.EXPECTED_GDN_SHA256},
+                                "qwen_model": {"sha256": bootstrap.EXPECTED_QWEN_SHA256},
+                            },
+                        },
                         {
                             "schema": "drror-vllm-ascend-evidence/v1",
                             "event": "model_configured",
@@ -529,6 +757,26 @@ class ActivationAuditTests(unittest.TestCase):
                             "value_head_dim": 128,
                             "backend": "chunk_gated_delta_rule",
                             "token_count": 3,
+                            "query_shape": [1, 3, 4, 102],
+                            "key_shape": [1, 3, 4, 102],
+                            "initial_state_shape": [1, 12, 102, 128],
+                            "prebuilt_metadata_forwarded": True,
+                            "completed_python_call": True,
+                        },
+                        {
+                            "schema": "drror-vllm-ascend-evidence/v1",
+                            "event": "reduced_gdn_decode_branch",
+                            "component": "gdn",
+                            "pid": pid,
+                            "plan_sha256": digest,
+                            "key_head_dim": 102,
+                            "value_head_dim": 128,
+                            "backend": "npu_recurrent_gated_delta_rule",
+                            "token_count": 1,
+                            "query_shape": [1, 1, 4, 102],
+                            "key_shape": [1, 1, 4, 102],
+                            "state_shape": [8, 12, 128, 102],
+                            "completed_python_call": True,
                         },
                     ]
                 )
@@ -542,24 +790,22 @@ class ActivationAuditTests(unittest.TestCase):
                 target_head_k_dim=102,
             )
             self.assertTrue(result["ok"], result)
-            path.write_text(
-                "".join(
-                    json.dumps(row) + "\n"
-                    for row in rows
-                    if not (
-                        row["event"] == "reduced_gdn_hot_path"
-                        and row["pid"] == 4
+            for missing in ("worker_dispatch_verified", "reduced_gdn_hot_path", "reduced_gdn_decode_branch"):
+                with self.subTest(missing=missing):
+                    path.write_text(
+                        "".join(
+                            json.dumps(row) + "\n" for row in rows if not (row["event"] == missing and row["pid"] == 4)
+                        ),
+                        encoding="utf-8",
                     )
-                ),
-                encoding="utf-8",
-            )
-            failed = audit.audit_activation(
-                path,
-                plan_sha256=digest,
-                target_head_k_dim=102,
-            )
+                    failed = audit.audit_activation(path, plan_sha256=digest, target_head_k_dim=102)
+                    self.assertFalse(failed["ok"])
+                    self.assertTrue(any("worker 4" in error for error in failed["errors"]))
+            rows[2]["runtime_sources"]["ascend_gdn"]["sha256"] = "0" * 64
+            path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            failed = audit.audit_activation(path, plan_sha256=digest, target_head_k_dim=102)
             self.assertFalse(failed["ok"])
-            self.assertTrue(any("worker 4" in error for error in failed["errors"]))
+            self.assertTrue(any("source hashes" in error for error in failed["errors"]))
 
 
 if __name__ == "__main__":
