@@ -9,6 +9,8 @@ import inspect
 from ..diagnostics import emit_evidence
 from ..envs import DrrqrConfig
 
+SUPPORTED_REDUCED_KEY_DIMS = (64, 88, 104)
+
 
 def install_prefill_patch(gdn_module, config: DrrqrConfig) -> None:
     """Observe the actual v0.23 module-global prefill call without changing it.
@@ -39,7 +41,7 @@ def install_prefill_patch(gdn_module, config: DrrqrConfig) -> None:
         q, k, v = values["q"], values["k"], values["v"]
         if q.shape[-1] == 128:
             return original(*args, **kwargs)
-        if q.shape[-1] not in (64, 89, 102) or k.shape[-1] != q.shape[-1] or v.shape[-1] != 128:
+        if q.shape[-1] not in SUPPORTED_REDUCED_KEY_DIMS or k.shape[-1] != q.shape[-1] or v.shape[-1] != 128:
             raise RuntimeError("DRRQR: unexpected reduced prefill dimensions")
         starts, prebuilt = values["cu_seqlens"], values["prebuilt_meta"]
         state = values["initial_state"]
@@ -132,7 +134,7 @@ def install_decode_observer(gdn_cls, gdn_module, config: DrrqrConfig) -> None:
             active.reset(token)
         state = self.kv_cache[1]
         qshape = observation.get("query_shape")
-        if not qshape or qshape[-1] not in (64, 89, 102) or state.shape[-1] != qshape[-1]:
+        if not qshape or qshape[-1] not in SUPPORTED_REDUCED_KEY_DIMS or state.shape[-1] != qshape[-1]:
             raise RuntimeError("DRRQR: completed decode did not expose expected reduced Q/K/state shapes")
         emit_evidence(
             config,

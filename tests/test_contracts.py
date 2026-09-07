@@ -28,6 +28,7 @@ from drror_vllm_ascend.plan import (
     OFFICIAL_CONFIG_SHA256,
     OFFICIAL_INDEX_SHA256,
     DrrqrPlan,
+    validate_ascend_decode_alignment,
     validate_official_checkpoint_hashes,
 )
 
@@ -329,8 +330,8 @@ class V023PrefillTests(unittest.TestCase):
         # The real v0.23 module has no fused method. Do not add one to this fake.
         return types.SimpleNamespace(chunk_gated_delta_rule=chunk), calls
 
-    def test_direct_v023_prefill_preserves_three_ratios_and_multisequence_metadata(self):
-        for dk in (102, 89, 64):
+    def test_direct_v023_prefill_preserves_three_aligned_ratios_and_multisequence_metadata(self):
+        for dk in (104, 88, 64):
             with self.subTest(dk=dk), tempfile.TemporaryDirectory(prefix="drror-v023-") as directory:
                 evidence = Path(directory) / "evidence.jsonl"
                 module, calls = self.module()
@@ -393,9 +394,9 @@ class V023PrefillTests(unittest.TestCase):
     def test_missing_metadata_or_wrong_state_fails_before_kernel(self):
         module, calls = self.module()
         gdn.install_prefill_patch(module, DrrqrConfig(enable=True))
-        q = torch.zeros(1, 2, 4, 89)
+        q = torch.zeros(1, 2, 4, 88)
         v = torch.zeros(1, 2, 12, 128)
-        for state, meta in ((torch.zeros(1, 12, 89, 128), None), (torch.zeros(1, 12, 128, 89), object())):
+        for state, meta in ((torch.zeros(1, 12, 88, 128), None), (torch.zeros(1, 12, 128, 88), object())):
             with self.assertRaisesRegex(RuntimeError, "original state layout"):
                 module.chunk_gated_delta_rule(
                     q,
@@ -413,7 +414,7 @@ class V023PrefillTests(unittest.TestCase):
 
 class V023DecodeTests(unittest.TestCase):
     def test_decode_observer_preserves_core_and_records_actual_shapes(self):
-        for dk in (64, 89, 102):
+        for dk in (64, 88, 104):
             with self.subTest(dk=dk), tempfile.TemporaryDirectory(prefix="drror-decode-") as directory:
                 evidence = Path(directory) / "evidence.jsonl"
                 metadata = types.SimpleNamespace(num_decodes=2, num_decode_tokens=2, spec_sequence_masks=None)
@@ -626,6 +627,10 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual(
             [prepare._target_dim(128, ratio) for ratio in (0.2, 0.3, 0.5)],
             [102, 89, 64],
+        )
+        self.assertEqual(
+            [prepare._target_dim(128, ratio) for ratio in (0.1875, 0.3125, 0.5)],
+            [104, 88, 64],
         )
 
     def test_official_qwen38_revision_hashes_are_pinned(self):
@@ -850,6 +855,13 @@ class ModelPatchTests(unittest.TestCase):
 
 
 class CacheAlignmentTests(unittest.TestCase):
+    def test_v023_decode_copyout_requires_float32_rows_aligned_to_32_bytes(self):
+        for dk in (64, 88, 104):
+            validate_ascend_decode_alignment(dk)
+        for dk in (89, 102):
+            with self.assertRaisesRegex(ValueError, "multiple of 8"):
+                validate_ascend_decode_alignment(dk)
+
     def test_reduced_dk102_uses_128_token_ceil_padding(self):
         layout = cache_alignment.calculate_padded_layout(
             ssm_page_size=313344,

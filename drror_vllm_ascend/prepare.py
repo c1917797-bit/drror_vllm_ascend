@@ -334,7 +334,7 @@ def main() -> None:
         "--pruning-ratio",
         type=float,
         required=True,
-        choices=(0.2, 0.3, 0.5),
+        choices=(0.1875, 0.2, 0.3, 0.3125, 0.5),
     )
     parser.add_argument("--tp-size", type=int, default=4)
     parser.add_argument("--captures-per-rank", type=int, default=16)

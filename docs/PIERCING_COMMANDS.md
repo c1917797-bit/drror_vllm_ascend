@@ -233,14 +233,17 @@ Capture uses an eager service only for calibration. Shut it down, unset
 settings for treatment performance. The source model is always
 `/cache/austinov/Qwen3.8-27B`; no Qwen3.6 derived checkpoint is accepted.
 
-The official dimension rule is
-`floor(128 * (1 - pruning_ratio))`: 20%, 30%, and 50% yield 102, 89, and 64.
-Each plan must use the same calibration set. This command remains a template
-until plan preparation and the plan files pass their tests.
+The paper dimension rule is
+`floor(128 * (1 - pruning_ratio))`: nominal 20%, 30%, and 50% yield Dk102,
+Dk89, and Dk64. Real v0.23 execution additionally requires the float32 decode
+state row (`Dk * 4`) to be divisible by the Ascend MTE 32-byte alignment.
+Therefore the runnable neighboring arms are Dk104, Dk88, and Dk64, whose exact
+reductions are 18.75%, 31.25%, and 50%. Each plan uses the same calibration
+set, and reports must disclose these exact ratios.
 
 ```bash
-export ARM='prune20'                 # prune20, prune30, or prune50
-export TARGET_DK='102'               # 102, 89, or 64
+export ARM='prune20_aligned'         # prune20_aligned, prune30_aligned, or prune50
+export TARGET_DK='104'               # 104, 88, or 64
 export VLLM_ASCEND_DRRQR_ENABLE=1
 export VLLM_ASCEND_DRRQR_PLAN_PATH="${RESULT_ROOT}/plans/${ARM}.json"
 export VLLM_ASCEND_DRRQR_PLAN_SHA256="$(sha256sum "${VLLM_ASCEND_DRRQR_PLAN_PATH}" | awk '{print $1}')"
@@ -449,7 +452,7 @@ each bound to the corresponding token-ID row.
 
 ```bash
 unset VLLM_ASCEND_DRRQR_CAPTURE_ENABLE
-for ARM_RATIO in prune20:0.2 prune30:0.3 prune50:0.5; do
+for ARM_RATIO in prune20_aligned:0.1875 prune30_aligned:0.3125 prune50:0.5; do
   ARM="${ARM_RATIO%:*}"
   RATIO="${ARM_RATIO#*:}"
   drror-prepare-plan --source /cache/austinov/Qwen3.8-27B \
@@ -461,9 +464,12 @@ for ARM_RATIO in prune20:0.2 prune30:0.3 prune50:0.5; do
 done
 ```
 
-The plans use Dk102 / Dk89 / Dk64, corresponding to actual removal of
-20.3125% / 30.46875% / 50%. Dk90 is a different experiment and must not be
-silently substituted. No alignment padding or speed benefit is assumed.
+The executable plans use Dk104 / Dk88 / Dk64, corresponding to exact removal
+of 18.75% / 31.25% / 50%. Dk102 / Dk89 remain valid offline selection plans
+for the nominal paper ratios but are not executable on the pinned v0.23
+AscendC decode path: their 408-byte / 356-byte float32 state rows violate the
+32-byte MTE copy-out alignment. The plugin rejects them before NPU execution.
+No alignment padding or speed benefit is assumed.
 
 ## 12. Audited v0.23 ABI and limits
 
@@ -486,4 +492,5 @@ branch; it introduces no alternate prefill kernel or torch.ops replacement.
 CPU contract tests and readable kernel shapes do not establish 910B4 support,
 accuracy, or speed. Those claims require real smoke, matching A/B raw rows,
 and profiling. Prefill can retain a 128-wide compute block even for reduced
-Dk, and decode alignment can likewise limit the predicted savings.
+Dk. The audited decode kernel uses a float32 state copy-out row of
+`Dk * 4` bytes, so the runnable target Dk must be a multiple of 8.
