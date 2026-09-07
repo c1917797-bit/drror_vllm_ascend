@@ -14,6 +14,7 @@ from unittest import mock
 import numpy as np
 import torch
 
+import drror_vllm_ascend as plugin
 from drror_vllm_ascend import audit, calibration, envs, prepare, selection
 from drror_vllm_ascend.envs import DrrqrConfig
 from drror_vllm_ascend.patches import (
@@ -34,6 +35,9 @@ from drror_vllm_ascend.plan import (
 
 
 class EnvironmentTests(unittest.TestCase):
+    def test_runtime_version_matches_release(self):
+        self.assertEqual(plugin.__version__, "0.1.4")
+
     def test_disabled_is_inert_and_capture_requires_hashes(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertFalse(envs.get_config().enable)
