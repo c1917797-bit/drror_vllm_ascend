@@ -1,0 +1,105 @@
+{
+  "arm": "plugin-free-baseline",
+  "artifact_sha256": {
+    "container-inspect.performance-start.json": "15b7f8d7f1dff520d10dfff1cf61924bb524b93af93df508394bd7f67b98f5c6",
+    "npu-smi.performance-end.txt": "0a38e9ea83d63ad05693f2db94c714596a22d0eba945a95d2dd87a282d715d57",
+    "npu-smi.performance-start.txt": "d9c112dfac035e7950949bccb896c717a354f9d20b64bd8e62061ea9df6aae36",
+    "performance.aggregate.json": "76f49efcc3155d69d42431e75a137c2fa8be21c7e01fe6b81dc39c90805b4da6",
+    "performance.completed-at-utc.txt": "1b11a0e6b1a51fc17ac9643b1f7d9fc345abc3392b9f9a7c02f41d38da63fd12",
+    "performance.run1.json": "992a4617197c0e1b12b6bf41a3681fd64bc52b38805785ed8002460b3bbf4b78",
+    "performance.run1.log": "e65fa358c754c8c21b7cafdad133a75945d19001525218897f8f9e0affe09b45",
+    "performance.run2.json": "ac79afe86bbbe29a444a4e7fa578a2872cd2d3a594f74f83822e717b044979a5",
+    "performance.run2.log": "8723f86df3928378a09f491201d76cb3fe20a88b06022f8f85668c7177164e95",
+    "performance.run3.json": "7d477263ab8209375f00beb5ed90e4769fd164bff58312dff5f2959134d07f32",
+    "performance.run3.log": "1d555b6eea641b6a44ad50036948cdebb89749b9ad20b8694dabab65f9435b6b",
+    "performance.started-at-utc.txt": "6e734ca80f90e2c7f0341e927c77451a8c18aae370a780990b6b39d8d0470821",
+    "service.performance-start.log": "2d5e42db6eba994c476fa79c191651b629abf7d7d5ddcf7c29765080c926942a",
+    "service.performance.log": "9c6e7f6aa62565200b3de7cf2c9d6e7e0b20ec267a919130870e8aed3105312b"
+  },
+  "completed_at_utc": "2026-09-07T17:34:10Z",
+  "errors": [],
+  "expected_config": {
+    "base_url": "http://127.0.0.1:8227",
+    "concurrency": 16,
+    "ignore_eos": true,
+    "input_tokens": 32768,
+    "model": "qwen38",
+    "output_tokens": 1024,
+    "prefix_tokens": 16384,
+    "requests": 40,
+    "segment_ends": [
+      16384,
+      32768
+    ],
+    "warmup_requests": 2
+  },
+  "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+  "means": {
+    "benchmark_duration_s": 339.59441176677745,
+    "output_tokens_per_second": 120.66071588314415,
+    "tpot_mean_ms": 77.49884670217781,
+    "ttft_mean_ms": 40029.11974992021
+  },
+  "ok": true,
+  "operation_exit_code": 0,
+  "operation_id": "exec-0000000000000d03",
+  "ranges": {
+    "benchmark_duration_s": 14.220937349833548,
+    "output_tokens_per_second": 4.983646200302985,
+    "tpot_mean_ms": 2.196413242886976,
+    "ttft_mean_ms": 3432.6278042804915
+  },
+  "runner": "/cache/cch/hypic_vllm_ascend-v0.8.5/tools/benchmark_shared_prefix.py",
+  "runner_sha256": "cba2b1b463a1e436c818722d92147d93f8396b8d64f8da6582d7e67d2cb45822",
+  "runs": [
+    {
+      "artifact": "performance.run1.json",
+      "benchmark_duration_s": 349.0618755000178,
+      "failed": 0,
+      "fixed_output_requests": 40,
+      "output_tokens": 40960,
+      "output_tokens_per_second": 117.34309265750196,
+      "requests": 40,
+      "run": 1,
+      "sha256": "992a4617197c0e1b12b6bf41a3681fd64bc52b38805785ed8002460b3bbf4b78",
+      "successful": 40,
+      "tpot_mean_ms": 78.9575449804291,
+      "ttft_mean_ms": 42317.22200951772
+    },
+    {
+      "artifact": "performance.run2.json",
+      "benchmark_duration_s": 334.84093815018423,
+      "failed": 0,
+      "fixed_output_requests": 40,
+      "output_tokens": 40960,
+      "output_tokens_per_second": 122.32673885780494,
+      "requests": 40,
+      "run": 2,
+      "sha256": "ac79afe86bbbe29a444a4e7fa578a2872cd2d3a594f74f83822e717b044979a5",
+      "successful": 40,
+      "tpot_mean_ms": 76.76113173754213,
+      "ttft_mean_ms": 38885.543035005685
+    },
+    {
+      "artifact": "performance.run3.json",
+      "benchmark_duration_s": 334.8804216501303,
+      "failed": 0,
+      "fixed_output_requests": 40,
+      "output_tokens": 40960,
+      "output_tokens_per_second": 122.31231613412555,
+      "requests": 40,
+      "run": 3,
+      "sha256": "7d477263ab8209375f00beb5ed90e4769fd164bff58312dff5f2959134d07f32",
+      "successful": 40,
+      "tpot_mean_ms": 76.77786338856222,
+      "ttft_mean_ms": 38884.59420523723
+    }
+  ],
+  "sample_sd": {
+    "benchmark_duration_s": 8.199087869504623,
+    "output_tokens_per_second": 2.87315504354185,
+    "tpot_mean_ms": 1.26329746586717,
+    "ttft_mean_ms": 1981.5547400591536
+  },
+  "schema": "paper-to-ascend.performance-audit/v1"
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "paper-to-ascend-resource-release/v1",
+  "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+  "phase": "baseline-longbench-v2-quality",
+  "container": "qwen38_drrqr_baseline_exact_host4_7_tp4_20260907_v6",
+  "stop_operation_id": "exec-0000000000000e24",
+  "audit_operation_ids": [
+    "exec-0000000000000e25",
+    "exec-0000000000000e27"
+  ],
+  "state": "exited",
+  "exit_code": 0,
+  "oom_killed": false,
+  "port_8227_free": true,
+  "host_npu_4_7": {
+    "4": "No process in device.",
+    "5": "No process in device.",
+    "6": "No process in device.",
+    "7": "No process in device."
+  },
+  "protected_host_npu_0_3_inspected": false,
+  "ok": true,
+  "errors": []
+}

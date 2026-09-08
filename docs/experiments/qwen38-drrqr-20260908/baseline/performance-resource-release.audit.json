@@ -1,0 +1,53 @@
+{
+  "arm": "plugin-free-baseline",
+  "artifact_sha256": {
+    "baseline-stop-requested-at-utc.txt": "760319e6011315cb03a87091925bc4b241b36a0bef07cfa79a79733516ed8b85",
+    "baseline-stopped-at-utc.txt": "120287a395549cb13b54784f382b1ce5ef380bbe1eb05b78d509c6313b6aad9a",
+    "container-inspect.post-stop.json": "f9e8b27fb8c357f6b43a45213276202fba6c08bc9eda16e4645779590e067cfa",
+    "container-inspect.pre-stop.json": "15b7f8d7f1dff520d10dfff1cf61924bb524b93af93df508394bd7f67b98f5c6",
+    "docker-stop.stdout.txt": "d12742b7f0627fed0aa41f176747ac56703cf536e8be5b6f3d5c03037abbcacc",
+    "performance.audit.json": "fca7cbb68778a33ac6c0d790a0a878014a865a7c974967cbec12370e7c83d996",
+    "port8227.post-stop.txt": "14f4ea5bdea2bd6f8d856ec28619243555e53de100d4bca155a751876e97a843",
+    "service.final.log": "ea2571c5a634911495ebb8209e77784146b46801da0796f9971351c859ce9d98",
+    "smoke.audit.json": "32891c145a3515e36522f64fd478c2407de6d8b562e164eaf1820600bb1f0006",
+    "smoke.request.json": "c600a162c1f29d95d4aa2bf102ada30a423a0eea99e10a9c83268d08dd4464fd",
+    "smoke.response.json": "054cc8fa256cac8bb85b4d9924f03c84364ec15d2abc687d7cacd3a15a943a9e"
+  },
+  "container": {
+    "exit_code": 0,
+    "finished_at": "2026-09-07T17:37:22.01542493Z",
+    "name": "qwen38_drrqr_baseline_exact_host4_7_tp4_20260907_v6",
+    "oom_killed": false,
+    "running": false,
+    "status": "exited"
+  },
+  "errors": [],
+  "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+  "npu4_7": {
+    "4": {
+      "no_process": true,
+      "path": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline/npu4.proc-mem.post-stop.txt",
+      "sha256": "61fd69d5f26dc5ddb57ba622c494c086cc1876d42eb721bcd8479a812e5c041c"
+    },
+    "5": {
+      "no_process": true,
+      "path": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline/npu5.proc-mem.post-stop.txt",
+      "sha256": "b6abc8b425efa563d00feb32709376bf7cec0fa4b8b585dddc545a8f5aa0fd52"
+    },
+    "6": {
+      "no_process": true,
+      "path": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline/npu6.proc-mem.post-stop.txt",
+      "sha256": "6683db52e54ef4365533d8b6a0682c63b20385987f542c0c1e97dba1c03c0e52"
+    },
+    "7": {
+      "no_process": true,
+      "path": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline/npu7.proc-mem.post-stop.txt",
+      "sha256": "bb798594b87a2d5a81630b42738618edd8d922df6ec5a91322c5c5878305c328"
+    }
+  },
+  "ok": true,
+  "port8227_listener_absent": true,
+  "schema": "paper-to-ascend.resource-release-audit/v1",
+  "stop_operation_id": "exec-0000000000000d1f",
+  "stopped_at_utc": "2026-09-07T17:37:25Z"
+}

@@ -1,0 +1,40 @@
+{
+  "accuracy_pct": 44.881889763779526,
+  "base_url": "http://127.0.0.1:8227",
+  "category_accuracy_pct": {
+    "difficulty": {
+      "easy": 46.51162790697674,
+      "hard": 44.04761904761905
+    },
+    "length": {
+      "short": 44.881889763779526
+    }
+  },
+  "completion_tokens": 104157,
+  "concurrency": 32,
+  "correct": 57,
+  "data_path": "/cache/cch/hhs-aisbench/ais_bench/datasets/LongBench-v2/data.json",
+  "data_sha256": "cdaa9e98deaefbba86f5eadeb287dd2ae90ed8f33313587dc547218b770fa39a",
+  "dataset": "longbenchv2",
+  "details_path": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline/quality/longbenchv2.run1.jsonl",
+  "details_sha256": "0c2562c943a2054eb20bd1672cf56d94d0d2bae7074e6dec0032350af5f8064b",
+  "enable_thinking": false,
+  "evaluator_script_sha256": "9c8cf4204964220acd31adc8a3f73332374f123e1b8681a522b33eff33504cc0",
+  "failed": 0,
+  "finish_reasons": {
+    "length": 66,
+    "stop": 61
+  },
+  "ignore_eos": false,
+  "max_out_len": 1024,
+  "model": "qwen38",
+  "prompt_template_sha256": "f83e3a6a0b6dadd20aa0b1098ae6b2e17a97ad85332c11f93f0b9baa9da97be1",
+  "requests": 127,
+  "run_id": "run1",
+  "schema": "hypic-quality-eval/v1",
+  "scorer": "supplied_ais_bench_first_option_postprocess",
+  "seed": 0,
+  "successful": 127,
+  "temperature": 0,
+  "unique_response_sha256": 121
+}

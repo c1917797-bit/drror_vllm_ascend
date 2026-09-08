@@ -1,0 +1,50 @@
+{
+  "schema": "paper-to-ascend-quality-audit/v1",
+  "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+  "arm": "baseline",
+  "dataset": "LongBench-v2",
+  "dataset_sha256": "cdaa9e98deaefbba86f5eadeb287dd2ae90ed8f33313587dc547218b770fa39a",
+  "evaluator_script_sha256": "9c8cf4204964220acd31adc8a3f73332374f123e1b8681a522b33eff33504cc0",
+  "prompt_template_sha256": "f83e3a6a0b6dadd20aa0b1098ae6b2e17a97ad85332c11f93f0b9baa9da97be1",
+  "runs": [
+    {
+      "run": 1,
+      "requests": 127,
+      "successful": 127,
+      "failed": 0,
+      "correct": 57,
+      "accuracy_pct": 44.881889763779526,
+      "details_sha256": "0c2562c943a2054eb20bd1672cf56d94d0d2bae7074e6dec0032350af5f8064b",
+      "summary_sha256": "b77f1a30e171069820d047cebbf73da0a85892806db813a52a5c9bab37a5c88b",
+      "log_sha256": "fcdd51459e199a670eac1d46937904e3e1ce5666df9cc469b3ec601136a86d0a"
+    },
+    {
+      "run": 2,
+      "requests": 127,
+      "successful": 127,
+      "failed": 0,
+      "correct": 59,
+      "accuracy_pct": 46.45669291338583,
+      "details_sha256": "bec2ae12ab2cad6ac6b440f639cd025452282b246df5cb184b5e401be9deaa04",
+      "summary_sha256": "9d20510cec732d9d965cfb1a2435e5df374cf5fd40110a2daf79c9c8d2880317",
+      "log_sha256": "3b6f1f423ebf555c0ee4a11dae9e425a2453195f78877cb3a39fc69598fabc08"
+    },
+    {
+      "run": 3,
+      "requests": 127,
+      "successful": 127,
+      "failed": 0,
+      "correct": 57,
+      "accuracy_pct": 44.881889763779526,
+      "details_sha256": "4b1da585244677da6dc4b4a42c73f92e50f94a95194cfa53b16bd9484df871c6",
+      "summary_sha256": "2b7cff255d4e04809678a23fa1d2afd1c62ec278c41c64f550b3e27d67445659",
+      "log_sha256": "9176e9a718a2579017c5dcfdfedbe47b080730b0d8d1d7fa6daa462af40bce18"
+    }
+  ],
+  "mean_accuracy_pct": 45.40682414698163,
+  "sample_sd_accuracy_pct": 0.9092130223458699,
+  "audit_operation_id": "exec-0000000000000e23",
+  "operation_cache_note": "Original long-running operation exec-0000000000000d7a expired from the short-term operation store after completion; persisted artifacts and absence of evaluator processes are authoritative.",
+  "ok": true,
+  "errors": []
+}
