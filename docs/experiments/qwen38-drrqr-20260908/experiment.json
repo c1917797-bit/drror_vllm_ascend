@@ -1,0 +1,200 @@
+{
+  "schema": "paper-to-ascend-experiment/v1",
+  "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+  "status": "complete-current-candidates-rejected",
+  "objective": "Evaluate whether official Strong RRQR state reduction, delivered as an independent monkeypatch plugin, provides measurable serving benefit for the BF16 Qwen3.8-27B checkpoint on Ascend 910B4 without material quality regression.",
+  "paper": {
+    "title": "The Key to State Reduction in Linear Attention: A Rank-based Perspective",
+    "official_code_path": "/cache/cch/LinearAttentionPruning",
+    "official_code_remote": "https://github.com/camail-official/LinearAttentionPruning.git",
+    "official_code_commit": "919d8667d951c385e08510bc1267c2e7049a4f56",
+    "official_code_clean_at_preflight": true,
+    "paper_pdf_path": "/cache/cch/papers/2602.04852v2/2602.04852v2.pdf",
+    "paper_pdf_sha256": "a42ddaf57222a3fea9b26f5ac1b2d54b7166f741eafdde3f8702d54c3a50d857",
+    "paper_pdf_status": "present-and-hash-bound"
+  },
+  "source_identity": {
+    "model_path": "/cache/austinov/Qwen3.8-27B",
+    "dtype": "bfloat16",
+    "config_sha256": "191e0af232104ed8b65258cf3fb2b842e288008baca7633c11b82a1ac7203aab",
+    "index_sha256": "77042094076611b69791a610065f28b7013b8c621795fa86ddccc8bac7d1b9df",
+    "indexed_shards_expected": 18,
+    "indexed_shards_present": 18,
+    "indexed_shard_bytes": 55563006776,
+    "full_weight_content_hash_manifest": {
+      "status": "complete-and-structurally-audited",
+      "operation_id": "exec-0000000000000d21",
+      "artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/source-model-hashes/source-model-sha256.json",
+      "sha256": "b51f7db23673241578e3b680f3464b134fc0e731083243fceec239a43a55df41",
+      "audit_artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/source-model-hashes/source-model-hash.audit.json",
+      "audit_operation_id": "exec-0000000000000d28",
+      "audit_ok": true,
+      "audit_errors": []
+    },
+    "checkpoint_declared_architecture": "Qwen3_5ForConditionalGeneration",
+    "checkpoint_declared_model_type": "qwen3_5",
+    "checkpoint_declared_text_model_type": "qwen3_5_text",
+    "architecture_interpretation": "These are the labels declared by the Qwen3.8 checkpoint itself and the v0.23 runtime ABI; they do not mean a Qwen3.5 checkpoint is being substituted.",
+    "layers": {
+      "total": 64,
+      "linear_attention": 48,
+      "full_attention": 16,
+      "linear_key_head_dim": 128,
+      "linear_value_head_dim": 128
+    }
+  },
+  "runtime_identity": {
+    "image_tag": "quay.io/ascend/vllm-ascend:v0.23.0",
+    "image_id": "sha256:660ce23a83574fdcd28ba126b07615829c06770c06fbdf6533f03cc4d90acdb1",
+    "image_manifest_digest": "sha256:471744200c5d0c768c1f6c6a6816dcae0fd551de2487d4d129b6fb750024ce6a",
+    "vllm_version": "0.23.0",
+    "vllm_ascend_version": "0.23.0",
+    "vllm_ascend_gdn_sha256": "d6ec29919268178f5bf6e70e689c1d273d04b1cb1d84dc94efa7bbbc35490816",
+    "vllm_qwen3_5_sha256": "04f3de5372973770d71c5c05f2e8a5e221ec52b62cca7a1e302d9201b61b8adc",
+    "runtime_source_audit_operation_id": "exec-0000000000000d14"
+  },
+  "resource_boundaries": {
+    "host": "chicaihong01",
+    "host_npus": [4, 5, 6, 7],
+    "container_visible_npus": [0, 1, 2, 3],
+    "protected_host_npus": [0, 1, 2, 3],
+    "tensor_parallel_size": 4,
+    "cpuset_cpus": "0-95",
+    "cpu_binding_observation": "vLLM automatic CPU binding was skipped on every rank because the allocated cpuset conflicted with its NUMA mapping; the same cpuset and behavior must be preserved for treatment.",
+    "host_port": 8227,
+    "container_port": 8227,
+    "network_mode": "bridge-with-127.0.0.1-port-publish",
+    "current_live_state": "All Qwen3.8 treatment operations are terminal and resource-release audits passed. Host NPU4-7 and port8227 are released; NPU0-3 remained protected and outside the experiment."
+  },
+  "baseline": {
+    "container": "qwen38_drrqr_baseline_exact_host4_7_tp4_20260907_v6",
+    "plugin_installed": false,
+    "plugin_absence_audit": "passed",
+    "model": "/cache/austinov/Qwen3.8-27B",
+    "served_model_name": "qwen38",
+    "serve_args": {
+      "tensor_parallel_size": 4,
+      "max_num_seqs": 16,
+      "max_model_len": 41984,
+      "max_num_batched_tokens": 16384,
+      "kv_cache_memory": 14495514624,
+      "prefix_caching": false,
+      "compilation_config": {"cudagraph_mode": "FULL_DECODE_ONLY"},
+      "additional_config": {"enable_cpu_binding": true},
+      "trust_remote_code": true
+    }
+  },
+  "treatments": [
+    {"nominal_reduction_ratio": 0.20, "target_dk": 102, "actual_reduction_ratio": 0.203125, "plan_sha256": "2ad98436eb6889cfd902c5ce8245a0ee6413e9049672614137ce8cc7914dc0c3", "status": "blocked-before-benchmark-v0.23-float32-state-row-mte-alignment"},
+    {"nominal_reduction_ratio": 0.30, "target_dk": 89, "actual_reduction_ratio": 0.3046875, "plan_sha256": "046cd580e99bcd4376a0229eebfd97515e14e4bd4ed8aeabeeeb4206d80d5e35", "status": "plan-built-same-v0.23-row-alignment-risk-not-launched"},
+    {"nominal_reduction_ratio": 0.1875, "requested_neighbor": 0.20, "target_dk": 104, "actual_reduction_ratio": 0.1875, "plan_sha256": "5bc3eabe4f98df880b28a287e28fe3c0fc9a8036b120c85f211d3cf41f7f9830", "status": "complete-rejected-performance-and-longbench"},
+    {"nominal_reduction_ratio": 0.3125, "requested_neighbor": 0.30, "target_dk": 88, "actual_reduction_ratio": 0.3125, "plan_sha256": "c75468decf7752388f3e6beb57b207bb6d426aa69b8aaf588431ceb22f7d6daf", "status": "complete-rejected-performance-and-longbench"},
+    {"nominal_reduction_ratio": 0.50, "target_dk": 64, "actual_reduction_ratio": 0.50, "plan_sha256": "3824e60fb9137fa1a1b134bff4594495014625583fdd62fdf5b9bc92f39b8bea", "status": "complete-rejected-longbench-quality"}
+  ],
+  "plugin_delivery": {
+    "form": "independent-vllm-general-plugin-monkeypatch",
+    "remote": "https://github.com/c1917797-bit/drror_vllm_ascend.git",
+    "last_verified_remote_main_commit": "d26dd8cde240fb578442f108620e7bb33ef703c4",
+    "target_host_checkout": "/cache/cch/drror_vllm_ascend",
+    "target_host_checkout_operation_id": "exec-0000000000000d26",
+    "target_host_base_commit": "d26dd8cde240fb578442f108620e7bb33ef703c4",
+    "target_host_base_status": "clean-local-main-equals-verified-remote-main",
+    "reviewed_wheel": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/plugin-artifact-aligned-v5/drror_vllm_ascend_plugin-0.1.4-py3-none-any.whl",
+    "reviewed_wheel_sha256": "014200a9c32f0b05fd0ea328f8664de43849a80aca2fa7a9d6cb46299aaa3d40",
+    "cpu_contract_tests": "30/30-passed-in-source-and-installed-wheel-in-exact-v0.23-image",
+    "ruff": "unavailable-on-target-host-and-exact-image-for-this-revision",
+    "diff_check": "passed",
+    "independent_abi_review": "passed-no-blocking-v0.23-issue",
+    "publication": {
+      "branch": "main",
+      "review_branch": "codex/qwen38-drrqr-v023-abi-20260907",
+      "commit": "d26dd8cde240fb578442f108620e7bb33ef703c4",
+      "push_status": "verified-main-push-and-ls-remote-match",
+      "fresh_clone_default_branch": "main",
+      "fresh_clone_head": "local-head-and-origin-main-verified-at-d26dd8cde240fb578442f108620e7bb33ef703c4",
+      "fresh_clone_tests": "source-and-installed-wheel-tests-30/30-passed"
+    },
+    "status": "0.1.4-local-head-and-origin-main-verified; source-and-installed-wheel-tests-passed"
+  },
+  "calibration": {
+    "paper_original": "FineWeb-Edu, 16 batches, batch size 1, sequence length 2048",
+    "paper_original_available_locally": false,
+    "ascend_adaptation": "First 16 source-ordered rows in delivered LongBench-v2 data_full.json that are outside the frozen 127-row LongBench-v2 quality set and contain at least 2048 Qwen3.8 tokens.",
+    "source_dataset": "/cache/cch/hhs-aisbench/ais_bench/datasets/LongBench-v2/data_full.json",
+    "source_dataset_sha256": "f3833b46bf4ccca48fc2f81a0efdcf9cd362ac2ec426c66068b1363e094250a1",
+    "source_rows": 503,
+    "evaluation_dataset": "/cache/cch/hhs-aisbench/ais_bench/datasets/LongBench-v2/data.json",
+    "evaluation_dataset_sha256": "cdaa9e98deaefbba86f5eadeb287dd2ae90ed8f33313587dc547218b770fa39a",
+    "evaluation_rows": 127,
+    "eligible_non_evaluation_rows": 376,
+    "frozen_input_ids": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/calibration/longbenchv2-non-eval-16x2048-qwen38-inputids.jsonl",
+    "frozen_input_ids_sha256": "81748f94c4eff0ad5e4053eb7c4a30b1a397a82d45676a8b0b42394bd612bd47",
+    "manifest": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/calibration/longbenchv2-non-eval-16x2048-qwen38.manifest.json",
+    "manifest_sha256": "23368412a40ee61ae558ccec3cef06bc575cba9304bf27c9cd769cf1ab377f2e",
+    "audit": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/calibration/calibration.audit.json",
+    "audit_sha256": "67bb45bca7cb1ff0cc216af49746f53748e4f8c66bbe58a2ad667fd0362bc905",
+    "prepare_operations": {
+      "failed_missing_driver_cpu_attempt": "exec-0000000000000d30",
+      "successful_cpu_only_attempt": "exec-0000000000000d31",
+      "independent_audit": "exec-0000000000000d32"
+    },
+    "samples": 16,
+    "tokens_per_sample": 2048,
+    "evaluation_id_overlap_count": 0,
+    "claim_boundary": "This is a documented platform adaptation and is not the paper's FineWeb-Edu calibration corpus."
+  },
+  "measurement_contract": {
+    "priority": "performance-first; run repeated quality only for a runtime-valid candidate with meaningful performance evidence",
+    "performance": {
+      "runner": "/cache/cch/hypic_vllm_ascend-v0.8.5/tools/benchmark_shared_prefix.py",
+      "runner_sha256": "cba2b1b463a1e436c818722d92147d93f8396b8d64f8da6582d7e67d2cb45822",
+      "input_tokens": 32768,
+      "shared_prefix_tokens": 16384,
+      "output_tokens": 1024,
+      "requests": 40,
+      "concurrency": 16,
+      "warmup_requests_per_run": 2,
+      "runs_per_arm": 3,
+      "temperature": 0,
+      "seed": 0,
+      "ignore_eos": true
+    },
+    "quality": {
+      "datasets": {
+        "LongBench-v2": {"rows": 127, "sha256": "cdaa9e98deaefbba86f5eadeb287dd2ae90ed8f33313587dc547218b770fa39a"},
+        "GSM8K": {"rows": 1319, "sha256": "3730d312f6e3440559ace48831e51066acaca737f6eabec99bccb9e4b3c39d14"}
+      },
+      "runs_per_arm": 3,
+      "concurrency": 32,
+      "max_output_tokens": 1024,
+      "temperature": 0,
+      "seed": 0,
+      "thinking": false,
+      "CEval": "excluded-by-operator",
+      "NIAH_plus": "not-run-without-authoritative-delivered-files"
+    }
+  },
+  "prune50_performance_result": {
+    "operation_id": "exec-0000000000000f48",
+    "phase": "prune50-performance",
+    "status": "passed",
+    "runs": 3,
+    "successful_requests_per_run": 40,
+    "fixed_output_tokens_per_run": 40960,
+    "activation_audit_errors": [],
+    "mean_output_tokens_per_second": 130.67781536728035,
+    "sample_sd_output_tokens_per_second": 3.4598077556703584,
+    "mean_ttft_ms": 37416.28059982322,
+    "mean_tpot_ms": 71.18047284457467,
+    "baseline_delta_pct": {
+      "output_tokens_per_second": 8.301873075108745,
+      "ttft_ms": -6.527346008343782,
+      "tpot_ms": -8.152861783716503
+    },
+    "artifact_root": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/prune50/performance",
+    "resource_release_audit": "passed"
+  },
+  "active_operation": null,
+  "incident_records": ["incident-qwen38-baseline-device-namespace-conflict-20260907.json", "incident-qwen38-drrqr-treatment-startup-compatibility-20260908.json"],
+  "claim_boundary": "The plugin-free Qwen3.8 baseline and audited calibration are established. Dk102/Dk89 are non-runnable on the pinned v0.23 AscendC decode copy-out alignment and are not algorithm outcomes. Dk64 has three accepted performance runs with mean throughput +8.301873075108745% versus baseline and complete four-worker activation evidence, but its quality and profiling are pending, so no adoption or precision-preservation claim is valid. Plugin 0.1.3 is verified at remote main 0e0104826ae787e168de5da29ec8507b2dd859ab."
+}

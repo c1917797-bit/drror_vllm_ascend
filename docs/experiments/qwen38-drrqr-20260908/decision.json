@@ -1,0 +1,28 @@
+{
+  "schema": "paper-to-ascend-decision/v1",
+  "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+  "status": "complete-rejected",
+  "decision": "reject-current-qwen38-drrqr-plugin-candidates",
+  "reason": "All runtime-valid arms proved real reduced prefill/decode execution on four TP workers and completed three performance and three LongBench-v2 repetitions. Dk104/18.75% was -2.746264% throughput and -25.459318 pp LongBench. Dk88/31.25% was -1.943667% throughput and -30.971129 pp LongBench. Dk64/50% was +8.301873% throughput but -9.448819 pp LongBench. No arm passes both performance and quality; GSM8K and native profiling were not started under their preregistered gate.",
+  "environment_gate": "recovered",
+  "baseline_runtime_gate": "passed-with-persisted-smoke-and-resource-release-audit",
+  "baseline_performance_gate": "passed-3-of-3-audit-errors-zero",
+  "treatment_runtime_gate": "passed-all-three-runtime-valid-arms-four-workers-real-prefill-and-decode",
+  "comparative_performance_gate": "failed-dk104-minus-2.746264-percent-dk88-minus-1.943667-percent-dk64-plus-8.301873-percent-only",
+  "quality_gate": "failed-all-three-longbench-dk104-minus-25.459318pp-dk88-minus-30.971129pp-dk64-minus-9.448819pp",
+  "profiling_gate": "not-run-by-preregistered-gate-no-performance-and-quality-winner",
+  "adoption_gate": "closed",
+  "candidate_order": [
+    {"target_dk": 104, "requested_neighbor": 0.20, "nominal_reduction_ratio": 0.1875, "actual_reduction_ratio": 0.1875},
+    {"target_dk": 88, "requested_neighbor": 0.30, "nominal_reduction_ratio": 0.3125, "actual_reduction_ratio": 0.3125},
+    {"target_dk": 64, "nominal_reduction_ratio": 0.50, "actual_reduction_ratio": 0.50}
+  ],
+  "stopping_rules": [
+    "Reject an arm if the plugin is not proven installed, registered and actually hit on every TP worker.",
+    "Reject or repair an arm if any real prefill/decode smoke fails or metadata/state shapes are not preserved.",
+    "Do not call a small mean difference a stable speedup when three-run intervals overlap or the change is within baseline noise.",
+    "Run repeated quality only for a runtime-valid arm with meaningful performance evidence; do not call a quality pass lossless proof.",
+    "Do not compare the paper's H100 training sequence-mixer number as if it were this Ascend full-model serving denominator."
+  ],
+  "next_gate": "None for this closed identity. Final evidence audit passed with errors=[] and both Markdown and HTML reports are present. Any anomaly investigation requires a new experiment identity and fresh same-denominator baseline."
+}

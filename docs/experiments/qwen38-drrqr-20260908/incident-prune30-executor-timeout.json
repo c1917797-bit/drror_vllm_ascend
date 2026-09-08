@@ -1,0 +1,11 @@
+{
+  "schema": "paper-to-ascend-incident/v1",
+  "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+  "classification": "orchestration-timeout-before-benchmark",
+  "failed_operation_id": "exec-0000000000001039",
+  "symptom": "The control-plane child timeout was set to 30 seconds and the launcher became terminal timedOut=true before activation or benchmark evidence existed.",
+  "preserved_state": "The exact Dk88 LongBench container remained running and contained only early evidence; it was not deleted or blindly restarted.",
+  "recovery_operation_id": "exec-0000000000001043",
+  "recovery": "Verified the exact container identity and resource lane, then resumed the same runner with an eight-hour child timeout. Four-worker activation and all three 127-row LongBench repetitions completed and resource release passed.",
+  "algorithm_result": false
+}

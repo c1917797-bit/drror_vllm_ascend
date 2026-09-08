@@ -1,0 +1,80 @@
+{
+  "schema": "paper-to-ascend-knowledge-proposals/v1",
+  "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+  "status": "candidate-only-not-promoted",
+  "proposals": [
+    {
+      "lesson": "Check Docker device exposure as well as active NPU processes before leasing an Ascend lane.",
+      "local_evidence": "An unrelated container computed on NPU0-1 but mapped NPU0-7; after the operator stopped it, unchanged restart exec-0000000000000cec recovered and API operation exec-0000000000000cf8 passed.",
+      "status": "controlled-recovery-observed-on-this-host",
+      "promotion_gate": "Retain before/after container and kernel artifacts, scope the lesson to resource isolation, and obtain maintainer review before generalizing."
+    },
+    {
+      "lesson": "Persist raw verification responses before starting long benchmarks; transient operation output is not an evidence archive.",
+      "local_evidence": "Smoke exec-0000000000000cfb passed operationally, but its raw response was not saved, the operation expired, and the copied hash was not a valid 64-character SHA256.",
+      "status": "local-recovery-completed-not-yet-promoted",
+      "recovery_evidence": "Replacement smoke operation exec-0000000000000d1e saved request and response bytes, returned HTTP200 and exact BASELINE_OK, and established response SHA256 054cc8fa256cac8bb85b4d9924f03c84364ec15d2abc687d7cacd3a15a943a9e.",
+      "promotion_gate": "Maintainer review must confirm that the persisted-response rule is reusable across workstreams before it is merged into shared knowledge."
+    },
+    {
+      "lesson": "A monkeypatch plugin needs three distinct activation gates: distribution/entrypoint discovery, patch installation, and a real reduced-shape hot-path hit on every worker.",
+      "local_evidence": "The published plugin targeted _chunk_gated_delta_rule_fused, but the frozen vLLM-Ascend 0.23 GDN source has no such function and calls module-global chunk_gated_delta_rule for prefill.",
+      "status": "abi-defect-confirmed-before-treatment",
+      "promotion_gate": "Correct the hook, lock the target source hashes, and collect per-rank prefill/decode events from a real NPU smoke."
+    },
+    {
+      "lesson": "Nominal state reduction does not imply proportional kernel or end-to-end speedup.",
+      "local_evidence": "The frozen v0.23 prefill KKT kernel uses BK=128, while candidate Dk values are 102, 89 and 64; decode aligns Dk to 16. Runtime measurement is required for each arm.",
+      "status": "source-level-performance-boundary",
+      "promotion_gate": "Pair source analysis with repeated end-to-end measurements and native profiling before making a causal performance claim."
+    },
+    {
+      "lesson": "Reproduction of a seeded stochastic algorithm requires matching RNG family, scope and traversal order, not only the numeric seed.",
+      "local_evidence": "The first plugin reset a Generator per head. Official LinearAttentionPruning seeds legacy NumPy once with 42 and consumes sequential choice calls across layer/head traversal. Commit 6a03c1f changed the plugin to a single shared RandomState(42) and added sequential-parity tests.",
+      "status": "corrected-and-tested-locally",
+      "promotion_gate": "Require the same source-to-port RNG audit in future paper reproductions and retain the official file/commit hash plus a parity test."
+    },
+    {
+      "lesson": "A published plugin must be bound to an immutable commit and verified through a clean default-branch clone before any NPU treatment.",
+      "local_evidence": "Both main and the review branch resolve to 6a03c1f6e026013108b10411e174c1d2e9eff0c3; a fresh default-branch clone passed 24/24 tests in the exact v0.23 image, and the treatment runner rejects any other commit or wheel digest.",
+      "status": "verified-for-current-workstream",
+      "promotion_gate": "Promote after maintainer review confirms the commit-plus-wheel-plus-fresh-clone gate is reusable."
+    },
+    {
+      "lesson": "Reducing recurrent state width changes hybrid-cache page geometry; compatibility must be restored by a bounded, evidenced calculation rather than disabling the runtime assertion.",
+      "local_evidence": "The first Dk102 startup stopped at the vLLM-Ascend v0.23 exact hybrid-cache alignment assertion. Plugin 0.1.2 recorded the recalculated page layout and reached full four-worker model load.",
+      "status": "runtime-compatibility-fix-observed-dk102",
+      "promotion_gate": "Require completed prefill/decode and benchmark evidence, plus review that the patch stays limited to the frozen v0.23 source hash."
+    },
+    {
+      "lesson": "Whole-checkpoint coverage invariants belong at a loader scope that consumes one complete checkpoint stream, not a repeatedly invoked submodule loader.",
+      "local_evidence": "Plugin 0.1.1 falsely failed after a valid partial inner-loader call. Plugin 0.1.2 moved transformation to Qwen3_5ForConditionalGeneration.load_weights, matching the Qwen3.8 checkpoint ABI, and observed exactly 96 target tensors on every TP worker.",
+      "status": "loader-scope-defect-corrected-and-runtime-observed",
+      "promotion_gate": "Retain the negative inner-loader test and verify the same invariant against future vLLM loader ABIs."
+    },
+    {
+      "lesson": "Audit device-kernel byte-alignment requirements before freezing nominal reduction ratios.",
+      "local_evidence": "The frozen v0.23 recurrent AscendC kernel writes each float32 state row with realK*sizeof(float). Dk102 produces 408 bytes and Dk89 356 bytes, neither divisible by 32; Dk64 produces 256 bytes. Dk102 therefore reached full model load but failed graph capture with an MTE invalid-parameter exception.",
+      "status": "source-and-runtime-alignment-defect-confirmed",
+      "promotion_gate": "Use exact hardware-aligned ranks, report their actual reduction percentages, and do not relabel rounded ranks as the originally requested nominal ratios."
+    },
+    {
+      "lesson": "A failure before any benchmark request is an implementation or environment incident, never a negative algorithm result.",
+      "local_evidence": "Four Dk102 attempts failed respectively at cache alignment, plugin registration inspection, loader-scope coverage and decode graph capture. Their artifacts were archived separately and no speed or quality number was emitted.",
+      "status": "evidence-boundary-applied",
+      "promotion_gate": "Maintainer review should adopt the same pre-benchmark classification and mandatory failed-artifact retention across workstreams."
+    },
+    {
+      "lesson": "Do not infer that a lighter nominal reduction is safer when the deployed recurrent-kernel dimension changes; require repeated quality and cross-run stability for every hardware-valid rank.",
+      "local_evidence": "The plans are nested for all 48 linear-attention layers, yet Dk104 and Dk88 LongBench means were 19.947507% and 14.435696%, while Dk64 was 35.958005%. Correct-set Jaccard across repetitions was 0.2250-0.2619 for Dk104, 0.0968-0.1724 for Dk88, 0.7692-0.8333 for Dk64 and 0.8413-0.9016 for baseline. This establishes non-monotonic and unstable behavior, not its cause.",
+      "status": "candidate-quality-anomaly-confirmed-causality-open",
+      "promotion_gate": "Before generalizing, run a new controlled numerical-parity experiment across supported Dk values and distinguish algorithmic loss from recurrent-kernel shape sensitivity."
+    },
+    {
+      "lesson": "A control-plane execution timeout must be separated from the lifecycle of the child container before retrying.",
+      "local_evidence": "Dk88 launcher operation exec-0000000000001039 timed out at 30 seconds while its exact container remained running. The container was verified and resumed by exec-0000000000001043 with an eight-hour child timeout; all activation and benchmark gates then completed.",
+      "status": "orchestration-recovery-observed",
+      "promotion_gate": "Encode a long child timeout for model-serving jobs and inspect the exact operation plus exact container before any restart."
+    }
+  ]
+}

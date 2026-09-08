@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Qwen3.8-27B DRRQR Ascend 穿刺报告</title>
+<style>
+:root{--ink:#172033;--muted:#667085;--line:#d7deea;--paper:#fff;--bg:#f3f6fb;--blue:#2854c5;--red:#b42318;--green:#067647}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+main{max-width:1120px;margin:32px auto;padding:48px 56px;background:var(--paper);box-shadow:0 10px 36px #20305018}
+h1{font-size:34px;line-height:1.2;margin:0 0 8px}h2{font-size:23px;margin:38px 0 12px;border-bottom:2px solid var(--line);padding-bottom:8px}
+h3{font-size:18px;margin:24px 0 8px}.meta{color:var(--muted);margin-bottom:28px}.verdict{border-left:5px solid var(--red);background:#fff3f1;padding:18px 22px;margin:22px 0}
+table{width:100%;border-collapse:collapse;margin:14px 0 22px;font-variant-numeric:tabular-nums}th,td{border:1px solid var(--line);padding:9px 11px;text-align:right}th{background:#eef3fb}th:first-child,td:first-child{text-align:left}
+code{background:#eef2f7;padding:.1em .35em;border-radius:4px}pre{background:#101828;color:#e7eefc;padding:16px 18px;overflow:auto;border-radius:8px;line-height:1.45}
+.bad{color:var(--red);font-weight:700}.good{color:var(--green);font-weight:700}.note{background:#eef4ff;border:1px solid #bfd0ff;padding:14px 18px}
+ul,ol{padding-left:23px}.footer{margin-top:42px;color:var(--muted);font-size:13px}
+@media(max-width:760px){main{margin:0;padding:26px 18px}table{font-size:12px}th,td{padding:6px}}
+</style>
+</head>
+<body><main>
+<h1>Qwen3.8-27B DRRQR Ascend 穿刺报告</h1>
+<div class="meta">Strong RRQR / DRRQR · vLLM-Ascend 0.23.0 · BF16 · TP4 · Ascend 910B4 NPU4-7 · 2026-09-08</div>
+
+<div class="verdict"><strong>最终结论：不采用当前三个候选。</strong><br>
+Dk104 与 Dk88 同时损失性能和精度；Dk64 吞吐提升 8.30%，但 LongBench-v2
+下降 9.45 个百分点，不满足精度无损或可接受退化要求。</div>
+
+<h2>1. 核心 A/B 结果</h2>
+<table><thead><tr><th>配置</th><th>实际削减率</th><th>吞吐变化</th><th>TTFT</th><th>TPOT</th><th>LongBench 均值</th><th>精度差</th></tr></thead>
+<tbody>
+<tr><td>Baseline Dk128</td><td>0%</td><td>—</td><td>—</td><td>—</td><td>45.406824%</td><td>—</td></tr>
+<tr><td>Dk104</td><td>18.75%</td><td class="bad">-2.746264%</td><td class="bad">+4.0149%</td><td class="bad">+2.4621%</td><td>19.947507%</td><td class="bad">-25.459318 pp</td></tr>
+<tr><td>Dk88</td><td>31.25%</td><td class="bad">-1.943667%</td><td class="bad">+2.8229%</td><td class="bad">+1.7928%</td><td>14.435696%</td><td class="bad">-30.971129 pp</td></tr>
+<tr><td>Dk64</td><td>50%</td><td class="good">+8.301873%</td><td class="good">-6.527346%</td><td class="good">-8.152862%</td><td>35.958005%</td><td class="bad">-9.448819 pp</td></tr>
+</tbody></table>
+
+<h2>2. 实验身份与隔离</h2>
+<ul>
+<li>模型：<code>/cache/austinov/Qwen3.8-27B</code>，18/18 分片，BF16。</li>
+<li>拓扑：64 层，48 层 linear attention，16 层 full attention；原始 Dk/Dv=128/128。</li>
+<li><code>Qwen3_5ForConditionalGeneration</code> 与 <code>qwen3_5_text</code> 是该 Qwen3.8 资产声明的 ABI，不是换成 Qwen3.5。</li>
+<li>宿主仅使用 NPU4-7，容器内映射为 0-3；宿主 NPU0-3 未检查、未操作。</li>
+<li>baseline 与 treatment 使用独立容器；baseline 未安装 DRRQR 插件。</li>
+<li>CEval 按要求排除；LongBench 通过后才允许 GSM8K。</li>
+</ul>
+
+<h2>3. 插件交付</h2>
+<p>插件仓库本地与远端 main 均为
+<code>d26dd8cde240fb578442f108620e7bb33ef703c4</code>，版本 0.1.4。
+wheel SHA256 为
+<code>014200a9c32f0b05fd0ea328f8664de43849a80aca2fa7a9d6cb46299aaa3d40</code>。
+源码与独立 wheel 环境均通过 30/30 测试。</p>
+<pre>cd /cache/cch/drror_vllm_ascend
+git fetch --prune origin
+test "$(git rev-parse origin/main)" = "d26dd8cde240fb578442f108620e7bb33ef703c4"
+git switch main
+git pull --ff-only origin main
+test "$(git rev-parse HEAD)" = "d26dd8cde240fb578442f108620e7bb33ef703c4"
+pip install --no-deps -e .</pre>
+
+<h2>4. Baseline</h2>
+<p>性能 ruler 复用同事成功实践：40 请求、并发 16、输入 361、固定输出 1024、
+2 次 warmup、3 次正式重复。</p>
+<table><thead><tr><th>Run</th><th>output tok/s</th><th>TTFT ms</th><th>TPOT ms</th><th>duration s</th></tr></thead>
+<tbody><tr><td>1</td><td>117.343093</td><td>42317.222010</td><td>78.957545</td><td>349.061876</td></tr>
+<tr><td>2</td><td>122.326739</td><td>38885.543035</td><td>76.761132</td><td>334.840938</td></tr>
+<tr><td>3</td><td>122.312316</td><td>38884.594205</td><td>76.777863</td><td>334.880422</td></tr>
+<tr><td><strong>mean</strong></td><td><strong>120.660716</strong></td><td><strong>40029.119750</strong></td><td><strong>77.498847</strong></td><td><strong>339.594412</strong></td></tr></tbody></table>
+<p>LongBench-v2 三轮为 44.881890%、46.456693%、44.881890%，均值
+45.406824%，样本标准差 0.909213 pp。所有性能轮 40/40 且输出严格为
+40,960 tokens；所有质量轮 127/127、0 failure。</p>
+
+<h2>5. 校准与 plan</h2>
+<p>从 503 行完整 LongBench-v2 中排除 127 行评测集，选择 16 个互不重合样本，
+每个 2048 tokens；捕获 3072/3072 tensors，覆盖 48/48 linear-attention
+层。未使用论文 FineWeb-Edu，因此是可审计的 Ascend adaptation，不是
+paper-exact reproduction。</p>
+<table><thead><tr><th>Dk</th><th>实际削减率</th><th>状态</th></tr></thead>
+<tbody><tr><td>102 / 89</td><td>名义 20% / 30%</td><td>float32 state row 不满足 32-byte 写入对齐，benchmark 前阻断</td></tr>
+<tr><td>104</td><td>18.75%</td><td>硬件可运行</td></tr>
+<tr><td>88</td><td>31.25%</td><td>硬件可运行</td></tr>
+<tr><td>64</td><td>50%</td><td>硬件可运行</td></tr></tbody></table>
+
+<h2>6. 插件事实加载门禁</h2>
+<ol>
+<li>包和 entrypoint 可发现；monkeypatch 已安装。</li>
+<li>96 个 Q/K/conv 目标权重转换完整。</li>
+<li>四个 TP worker 均记录模型配置、权重加载与 dispatch。</li>
+<li>实际 Ascend recurrent GDN decode 和 prefill 热路径使用目标 Dk。</li>
+<li>真实请求 smoke 成功后才允许 benchmark。</li>
+</ol>
+<p>Dk104、Dk88、Dk64 全部通过。因此负面精度结果不是“插件没加载”。</p>
+
+<h2>7. LongBench 三轮</h2>
+<table><thead><tr><th>Arm</th><th>Run 1</th><th>Run 2</th><th>Run 3</th><th>Mean</th><th>SD</th></tr></thead>
+<tbody><tr><td>Dk104</td><td>20.472441%</td><td>21.259843%</td><td>18.110236%</td><td>19.947507%</td><td>1.639107 pp</td></tr>
+<tr><td>Dk88</td><td>10.236220%</td><td>16.535433%</td><td>16.535433%</td><td>14.435696%</td><td>3.636852 pp</td></tr>
+<tr><td>Dk64</td><td>35.433071%</td><td>33.858268%</td><td>38.582677%</td><td>35.958005%</td><td>2.405552 pp</td></tr></tbody></table>
+
+<h2>8. 为什么停止 GSM8K 与 profiling</h2>
+<div class="note">预注册协议只允许 LongBench 成功候选进入 GSM8K，只允许同时通过
+性能和质量的唯一 winner 进入 native profiling。本次没有 winner，因此两项均
+记录为 <code>not-run-by-preregistered-gate</code>，而不是遗漏。</div>
+
+<h2>9. 非单调异常与证据边界</h2>
+<p>三份 plan 在 48 层上均满足 Dk64 ⊂ Dk88 ⊂ Dk104，但质量并不单调。
+三轮正确集合 Jaccard：baseline 0.8413-0.9016；Dk104 0.2250-0.2619；
+Dk88 0.0968-0.1724；Dk64 0.7692-0.8333。这证明 Dk104/Dk88 的重复间
+不稳定性，<strong>但不证明</strong>根因一定来自论文算法或 Ascend kernel。
+后续必须在新实验身份下先做 Dk128/104/88/64 数值 parity。</p>
+
+<h2>10. 与同事 HYPIC 成功实践对比</h2>
+<table><thead><tr><th>项目</th><th>同事 HYPIC</th><th>本次 DRRQR</th></tr></thead>
+<tbody><tr><td>集成</td><td>独立插件、可编辑安装</td><td>独立 monkeypatch wheel/可编辑安装</td></tr>
+<tr><td>资源</td><td>2× Ascend 910C</td><td>4× Ascend 910B4，仅 NPU4-7</td></tr>
+<tr><td>激活证据</td><td>runtime hooks/evidence</td><td>四 worker、96 权重、prefill/decode hot path</td></tr>
+<tr><td>A/B</td><td>固定 ruler 与独立配置</td><td>独立容器、同版本、三轮固定 ruler</td></tr>
+<tr><td>结果</td><td>成功收益</td><td>无联合 winner，拒绝采用</td></tr></tbody></table>
+<p>复用的是科学方法，而不是照抄一组环境变量。因此负结论同样可交付、可复核。</p>
+
+<h2>11. 最终审计和恢复</h2>
+<pre>cd /cache/cch/.worktrees/WS-20260904-qwen38-dense-paper-to-ascend
+python3 .agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/audit_qwen38_drrqr_final.py</pre>
+<p>审计结果：<span class="good">ok=true, errors=[]</span>。它重新验证 12 个性能
+运行、12 个质量运行、plan SHA、四 worker 激活和全部资源释放。审计文件：
+<code>/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/final-evidence-audit.json</code>。
+当前没有运行中的本实验容器，也没有需要恢复的 operation。</p>
+<p>若继续定位异常，必须创建新 experiment identity、保留当前证据、重新冻结同分母
+baseline，并先加入 kernel 数值 parity；不要删除当前证据后在同一 identity 下重跑。</p>
+
+<div class="footer">详细逐步命令、哈希、失败恢复与证据路径见同目录
+<code>QWEN38_DRRQR_PIERCING_REPORT.md</code>。</div>
+</main></body></html>

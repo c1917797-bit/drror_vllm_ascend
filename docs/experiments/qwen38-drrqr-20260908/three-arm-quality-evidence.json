@@ -1,0 +1,80 @@
+{
+  "schema": "paper-to-ascend-comparative-quality/v1",
+  "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+  "status": "complete",
+  "model": "/cache/austinov/Qwen3.8-27B",
+  "runtime": "vllm-ascend 0.23.0 BF16 TP4",
+  "resource_lane": "host NPU4-7 mapped to container-visible 0-3; host NPU0-3 protected",
+  "dataset": {
+    "name": "LongBench-v2",
+    "rows_per_run": 127,
+    "repetitions": 3,
+    "failed_requests": 0,
+    "ceval_excluded": true
+  },
+  "baseline": {
+    "accuracies_pct": [44.881889763779526, 46.45669291338583, 44.881889763779526],
+    "mean_pct": 45.40682414698163,
+    "sample_sd_pp": 0.909213
+  },
+  "treatments": [
+    {
+      "arm": "prune20_aligned",
+      "target_dk": 104,
+      "actual_reduction_pct": 18.75,
+      "plan_sha256": "5bc3eabe4f98df880b28a287e28fe3c0fc9a8036b120c85f211d3cf41f7f9830",
+      "performance_throughput_delta_pct": -2.746263539599536,
+      "accuracies_pct": [20.47244094488189, 21.25984251968504, 18.11023622047244],
+      "mean_pct": 19.94750656167979,
+      "sample_sd_pp": 1.6391070861938057,
+      "delta_vs_baseline_pp": -25.45931758530184,
+      "operation_id": "exec-0000000000000ff9",
+      "activation_audit": "passed-four-of-four-workers-real-prefill-and-decode",
+      "resource_release": "passed",
+      "decision": "reject"
+    },
+    {
+      "arm": "prune30_aligned",
+      "target_dk": 88,
+      "actual_reduction_pct": 31.25,
+      "plan_sha256": "c75468decf7752388f3e6beb57b207bb6d426aa69b8aaf588431ceb22f7d6daf",
+      "performance_throughput_delta_pct": -1.9436667811411623,
+      "accuracies_pct": [10.236220472440944, 16.53543307086614, 16.53543307086614],
+      "mean_pct": 14.435695538057741,
+      "sample_sd_pp": 3.636852089383469,
+      "delta_vs_baseline_pp": -30.97112860892389,
+      "operation_id": "exec-0000000000001043",
+      "activation_audit": "passed-four-of-four-workers-real-prefill-and-decode",
+      "resource_release": "passed",
+      "decision": "reject"
+    },
+    {
+      "arm": "prune50",
+      "target_dk": 64,
+      "actual_reduction_pct": 50.0,
+      "plan_sha256": "3824e60fb9137fa1a1b134bff4594495014625583fdd62fdf5b9bc92f39b8bea",
+      "performance_throughput_delta_pct": 8.301873075108745,
+      "accuracies_pct": [35.43307086614173, 33.85826771653543, 38.58267716535433],
+      "mean_pct": 35.958005249343834,
+      "sample_sd_pp": 2.40555154590858,
+      "delta_vs_baseline_pp": -9.448818897637796,
+      "operation_id": "exec-0000000000001071",
+      "activation_audit": "passed-four-of-four-workers-real-prefill-and-decode",
+      "resource_release": "passed",
+      "decision": "reject"
+    }
+  ],
+  "cross_run_correct_set_jaccard": {
+    "baseline": [0.8413, 0.9, 0.9016],
+    "prune20_aligned": [0.2619, 0.225, 0.25],
+    "prune30_aligned": [0.0968, 0.1724, 0.1667],
+    "prune50": [0.8333, 0.7736, 0.7692]
+  },
+  "gate_result": {
+    "performance_and_quality_winner": null,
+    "gsm8k": "not-run-because-no-arm-passed-longbench-gate",
+    "native_profile": "not-run-because-no-arm-passed-performance-and-quality-gates",
+    "adoption": "rejected"
+  },
+  "claim_boundary": "The experiment proves the observed end-to-end outcomes for this hash-bound Ascend adaptation. The non-monotonic quality across Dk values is confirmed, but its cause is not established; a new numerical-parity experiment is required before attributing it to the paper algorithm or the Ascend recurrent kernel."
+}

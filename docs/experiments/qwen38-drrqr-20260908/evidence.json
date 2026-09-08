@@ -1,0 +1,168 @@
+{
+  "schema": "paper-to-ascend-evidence/v1",
+  "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+  "status": "complete-three-arm-performance-and-longbench-evidence-current-candidates-rejected",
+  "accepted": {
+    "official_algorithm_source": {
+      "path": "/cache/cch/LinearAttentionPruning",
+      "remote": "https://github.com/camail-official/LinearAttentionPruning.git",
+      "commit": "919d8667d951c385e08510bc1267c2e7049a4f56",
+      "clean": true,
+      "operation_id": "exec-0000000000000d0e"
+    },
+    "model_inventory": {
+      "path": "/cache/austinov/Qwen3.8-27B",
+      "config_sha256": "191e0af232104ed8b65258cf3fb2b842e288008baca7633c11b82a1ac7203aab",
+      "index_sha256": "77042094076611b69791a610065f28b7013b8c621795fa86ddccc8bac7d1b9df",
+      "indexed_shards": "18/18",
+      "full_shard_hash_manifest": {
+        "operation_id": "exec-0000000000000d21",
+        "artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/source-model-hashes/source-model-sha256.json",
+        "sha256": "b51f7db23673241578e3b680f3464b134fc0e731083243fceec239a43a55df41",
+        "shard_count": 18,
+        "total_shard_bytes": 55563006776,
+        "audit_operation_id": "exec-0000000000000d28",
+        "audit_artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/source-model-hashes/source-model-hash.audit.json",
+        "audit_ok": true,
+        "audit_errors": []
+      }
+    },
+    "calibration": {
+      "dataset_inventory_operation_id": "exec-0000000000000d2d",
+      "disjointness_operation_id": "exec-0000000000000d2e",
+      "failed_cpu_prepare_operation_id": "exec-0000000000000d30",
+      "successful_cpu_prepare_operation_id": "exec-0000000000000d31",
+      "independent_audit_operation_id": "exec-0000000000000d32",
+      "source_dataset": "/cache/cch/hhs-aisbench/ais_bench/datasets/LongBench-v2/data_full.json",
+      "source_dataset_sha256": "f3833b46bf4ccca48fc2f81a0efdcf9cd362ac2ec426c66068b1363e094250a1",
+      "source_rows": 503,
+      "evaluation_dataset": "/cache/cch/hhs-aisbench/ais_bench/datasets/LongBench-v2/data.json",
+      "evaluation_dataset_sha256": "cdaa9e98deaefbba86f5eadeb287dd2ae90ed8f33313587dc547218b770fa39a",
+      "evaluation_rows": 127,
+      "eligible_non_evaluation_rows": 376,
+      "artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/calibration/longbenchv2-non-eval-16x2048-qwen38-inputids.jsonl",
+      "artifact_sha256": "81748f94c4eff0ad5e4053eb7c4a30b1a397a82d45676a8b0b42394bd612bd47",
+      "manifest_sha256": "23368412a40ee61ae558ccec3cef06bc575cba9304bf27c9cd769cf1ab377f2e",
+      "audit_sha256": "67bb45bca7cb1ff0cc216af49746f53748e4f8c66bbe58a2ad667fd0362bc905",
+      "rows": 16,
+      "tokens_per_row": 2048,
+      "unique_source_ids": 16,
+      "evaluation_id_overlap_count": 0,
+      "audit_ok": true,
+      "audit_errors": []
+    },
+    "runtime_abi": {
+      "operation_id": "exec-0000000000000d14",
+      "vllm_ascend_gdn_sha256": "d6ec29919268178f5bf6e70e689c1d273d04b1cb1d84dc94efa7bbbc35490816",
+      "vllm_qwen3_5_sha256": "04f3de5372973770d71c5c05f2e8a5e221ec52b62cca7a1e302d9201b61b8adc"
+    },
+    "environment_recovery": {
+      "incident_record": "incident-qwen38-baseline-device-namespace-conflict-20260907.json",
+      "artifact_root": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/incident-device-namespace",
+      "artifact_capture_operation_id": "exec-0000000000000d0c"
+    },
+    "baseline_runtime": {
+      "isolation_preflight": {"operation_id": "exec-0000000000000ceb", "status": "passed"},
+      "unchanged_restart": {"operation_id": "exec-0000000000000cec", "status": "passed"},
+      "weight_load_compile_progress": {"operation_ids": ["exec-0000000000000cf0", "exec-0000000000000cf5"], "status": "passed"},
+      "api_models": {"operation_id": "exec-0000000000000cf8", "status": "passed", "http_status": 200},
+      "plugin_absence": {"operation_id": "exec-0000000000000cfa", "status": "passed"},
+      "deterministic_smoke": {
+        "operation_id": "exec-0000000000000cfb",
+        "status": "observed-passed",
+        "http_status": 200,
+        "prompt_tokens": 22,
+        "completion_tokens": 4,
+        "exact_text": "BASELINE_OK",
+        "raw_response_preserved": false,
+        "response_sha256": null,
+        "hash_status": "not-established",
+        "operation_retrieval_status": "expired-from-short-term-operation-store"
+      },
+      "replacement_persisted_smoke": {
+        "operation_id": "exec-0000000000000d1e",
+        "status": "passed-and-persisted",
+        "http_status": 200,
+        "prompt_tokens": 22,
+        "completion_tokens": 4,
+        "exact_text": "BASELINE_OK",
+        "request_artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline/smoke.request.json",
+        "request_sha256": "c600a162c1f29d95d4aa2bf102ada30a423a0eea99e10a9c83268d08dd4464fd",
+        "response_artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline/smoke.response.json",
+        "response_sha256": "054cc8fa256cac8bb85b4d9924f03c84364ec15d2abc687d7cacd3a15a943a9e",
+        "audit_artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline/smoke.audit.json",
+        "audit_sha256": "32891c145a3515e36522f64fd478c2407de6d8b562e164eaf1820600bb1f0006"
+      }
+    },
+    "baseline_performance": {
+      "operation_id": "exec-0000000000000d03",
+      "operation_exit_code": 0,
+      "completed_at_utc": "2026-09-07T17:34:10Z",
+      "artifact_root": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline",
+      "audit_artifact": "performance.audit.json",
+      "audit_sha256": "fca7cbb68778a33ac6c0d790a0a878014a865a7c974967cbec12370e7c83d996",
+      "audit_ok": true,
+      "audit_errors": [],
+      "runs": [
+        {"run": 1, "sha256": "992a4617197c0e1b12b6bf41a3681fd64bc52b38805785ed8002460b3bbf4b78", "requests": 40, "successful": 40, "failed": 0, "fixed_output_requests": 40, "output_tokens": 40960, "output_tokens_per_second": 117.34309265750196, "ttft_mean_ms": 42317.22200951772, "tpot_mean_ms": 78.9575449804291, "benchmark_duration_s": 349.0618755000178},
+        {"run": 2, "sha256": "ac79afe86bbbe29a444a4e7fa578a2872cd2d3a594f74f83822e717b044979a5", "requests": 40, "successful": 40, "failed": 0, "fixed_output_requests": 40, "output_tokens": 40960, "output_tokens_per_second": 122.32673885780494, "ttft_mean_ms": 38885.543035005685, "tpot_mean_ms": 76.76113173754213, "benchmark_duration_s": 334.84093815018423},
+        {"run": 3, "sha256": "7d477263ab8209375f00beb5ed90e4769fd164bff58312dff5f2959134d07f32", "requests": 40, "successful": 40, "failed": 0, "fixed_output_requests": 40, "output_tokens": 40960, "output_tokens_per_second": 122.31231613412555, "ttft_mean_ms": 38884.59420523723, "tpot_mean_ms": 76.77786338856222, "benchmark_duration_s": 334.8804216501303}
+      ],
+      "mean": {
+        "output_tokens_per_second": 120.66071588314415,
+        "ttft_mean_ms": 40029.11974992021,
+        "tpot_mean_ms": 77.49884670217781,
+        "benchmark_duration_s": 339.59441176677745
+      },
+      "sample_sd": {
+        "output_tokens_per_second": 2.87315504354185,
+        "ttft_mean_ms": 1981.5547400591536,
+        "tpot_mean_ms": 1.26329746586717,
+        "benchmark_duration_s": 8.199087869504623
+      }
+    },
+    "baseline_resource_release": {
+      "stop_operation_id": "exec-0000000000000d1f",
+      "audit_artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline/resource-release.audit.json",
+      "audit_sha256": "360d08bec29b1eba7bea6183504eb4030f823dc52a6e9c2aa1dae92beb919d51",
+      "container_exit_code": 0,
+      "container_oom_killed": false,
+      "port8227_listener_absent": true,
+      "npu4_7_no_process": true,
+      "ok": true
+    }
+  },
+  "ongoing": {
+    "phase": "closed",
+    "active_operation_id": null,
+    "source_model_hash_operation_id": "exec-0000000000000d21",
+    "source_model_hash_status": "completed-and-audited",
+    "plugin_local_status": "0.1.4-commit-d26dd8cde240fb578442f108620e7bb33ef703c4-source-and-installed-wheel-30-of-30-tests-passed",
+    "plugin_target_status": "local-head-and-origin-main-equal-d26dd8cde240fb578442f108620e7bb33ef703c4-wheel-sha256-014200a9c32f0b05fd0ea328f8664de43849a80aca2fa7a9d6cb46299aaa3d40",
+    "baseline_quality_status": "three-of-three-complete-mean-45.40682414698163-audit-errors-zero",
+    "baseline_quality_audit_sha256": "1db4c87362d6986cbbdd4af61b226fad1c182407d1643ae75223292cf84767a0",
+    "baseline_quality_release_audit_sha256": "a2ce93a29d290e62da251e355ea3163895f758041f8227371b395e23f961afc1",
+    "calibration_status": "frozen-16x2048-qwen38-inputids-zero-evaluation-overlap-audited",
+    "treatment_status": "Dk104-Dk88-Dk64-complete-four-worker-hot-path-performance-and-three-run-longbench-current-candidates-rejected"
+  },
+  "rejected_or_invalid": {
+    "exec-0000000000000cf9": "Not evidence: docker exec omitted stdin forwarding and the result did not establish plugin absence.",
+    "smoke_hash_copied_from_transient_output": "Rejected: the copied value was not a 64-character SHA256 and the raw response was not preserved.",
+    "exec-0000000000000d30": "CPU-only calibration attempt failed before tokenization because the image auto-loaded torch_npu without mounted Ascend driver libraries. No NPU devices were mapped. The corrected attempt disabled backend auto-loading and succeeded.",
+    "exec-0000000000000e83": "Not algorithm evidence: Dk102 failed before model load at the frozen v0.23 hybrid-cache exact-alignment assertion; archived as performance-failed-start-v1.",
+    "exec-0000000000000ee9": "Not algorithm evidence: Dk102 failed during plugin registration due classmethod source inspection; archived as performance-failed-start-v2.",
+    "exec-0000000000000f00": "Not algorithm evidence: Dk102 failed during a falsely scoped whole-checkpoint coverage assertion in a repeated inner loader; archived as performance-failed-start-v3.",
+    "exec-0000000000000f2e": "Not algorithm evidence: Dk102 completed 96/96 transforms on four workers and model load, then the frozen v0.23 recurrent AscendC operator raised an MTE invalid-parameter exception during decode graph capture because a 408-byte float32 state row is not 32-byte aligned; archived as performance-failed-start-v4."
+  },
+  "open_evidence_gates": [],
+  "publication_evidence": {
+    "remote": "https://github.com/c1917797-bit/drror_vllm_ascend.git",
+    "commit": "d26dd8cde240fb578442f108620e7bb33ef703c4",
+    "main_push": "local-head-and-origin-main-verified-equal",
+    "review_branch_push": "passed",
+    "fresh_clone_default_branch": "main",
+    "fresh_clone_head": "origin-main-d26dd8cde240fb578442f108620e7bb33ef703c4",
+    "fresh_clone_tests": "source-and-installed-wheel-tests-30/30-passed",
+    "wheel_sha256": "014200a9c32f0b05fd0ea328f8664de43849a80aca2fa7a9d6cb46299aaa3d40"
+  }
+}

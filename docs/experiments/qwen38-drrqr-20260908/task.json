@@ -1,0 +1,698 @@
+{
+  "task_id": "WS-20260904-qwen38-dense-paper-to-ascend",
+  "objective": "Maintain auditable Paper-to-Ascend experiments on Ascend 910B4: preserve the completed Qwen3.6-27B HYPIC reproduction and rejected Dk64/Dk96 DRRQR evidence, while executing the active Qwen3.8-27B BF16 DRRQR monkeypatch piercing with a fresh plugin-free baseline and isolated treatment arms.",
+  "target_branch": "main",
+  "workstream_branch": "work/WS-20260904-qwen38-dense-paper-to-ascend",
+  "original_base": "222677fc719c7014879b161ed1dd3ed3276d7a5d",
+  "execution_state": "qwen38-experiment-closed-final-audit-and-reports-complete",
+  "integration_state": "not-ready-current-candidates-rejected",
+  "decision": "qwen36-rejections-preserved; qwen38-drrqr-dk104-dk88-dk64-rejected",
+  "decision_reason": "The plugin-free Qwen3.8 baseline and all three runtime-valid DRRQR arms completed three performance and LongBench-v2 repetitions. Dk104/18.75% was -2.746264% throughput and -25.459318 pp quality; Dk88/31.25% was -1.943667% throughput and -30.971129 pp quality; Dk64/50% was +8.301873% throughput but -9.448819 pp quality. No arm passes both gates. GSM8K and native profiling were not run because the preregistered LongBench gate failed.",
+  "resource_claims": {
+    "host_npu_0_3": "protected and outside this experiment; do not enter, stop, restart, reconfigure or use its ports even when an outer read-only status reports the cards idle",
+    "host_npu_4_7": "released after terminal-successful Dk104, Dk88 and Dk64 treatment operations; all three resource-release audits passed",
+    "cpu_0_95": "released with the baseline. Automatic CPU binding was skipped because the cpuset and NUMA topology did not satisfy the runtime binding contract; every treatment must preserve CPU0-95 and the same observed behavior",
+    "experiment_topology": "active identity is Qwen3.8-27B BF16, TP4, host NPU4-7 mapped to container-visible 0-3, CPU0-95 and host port8227; the plugin-free baseline and future plugin treatment use separate containers and the old Qwen3.6 evidence is not pooled",
+    "other_cpu_sets": "no claim; do not alter workloads outside the exact experiment containers"
+  },
+  "boundaries": [
+    "Never alter the active workload on NPU0-3.",
+    "Operate only exact paper-prefixed formal containers on NPU4-7; never alter the NPU0-3 workload.",
+    "Do not pool this fresh TP4 case with preserved TP2 or earlier TP4 artifacts; their baselines and evidence ledgers are separate.",
+    "Do not modify /cache/austinov/Qwen3.8-27B in place.",
+    "The baseline container must remain plugin-free; install the DRRQR package only in independent capture or treatment containers.",
+    "Fixed-first-channel is speed evidence only; L1 is not DRRQR.",
+    "Exclude cold compile/graph samples.",
+    "Do not fabricate Git identity. The user explicitly authorized publishing the corrected plugin main branch; any later push still requires exact reviewed content and preserved provenance."
+  ],
+  "completed_gates": [
+    "paper/source/model feasibility",
+    "baseline real-weight serve and profile",
+    "Dk64 conversion, 48-layer shape validation, real-weight load, warm A/B and profile",
+    "L1 conversion, load and initial micro-quality probe",
+    "G1-G4 orthogonal treatment matrix and second compatible GDN model selected and verified offline",
+    "RRQR post-conv Q/K capture made prefill-only, double-opt-in and bounded per layer/rank; isolated host-side contract passed",
+    "successful performance-versus-quality service lifecycle encoded in runtime template, preflight, result rows and current-environment runbook",
+    "historical Qwen3.5 TP2 and current Qwen3.6 TP4 topology boundary is explicit; a two-card feasibility probe cannot reuse the TP4 baseline",
+    "default-dry-run one-shot executor validated across 8 cells/121 events with preflight and artifact-hash binding guards",
+    "quality gate bound to exact four-dataset suite, at least two models and hashed repeated-G1 noise evidence",
+    "production condition-C evidence requires an explicit 512-token count, a canonical lowercase SHA256 digest and finite quality scores",
+    "quality rows are cryptographically bound to one frozen-input, invariant-config and treatment-matrix ruler, with stable checkpoint/service/canary-input identities",
+    "Step-6 renderer rejects performance and quality artifacts whose frozen-input, invariant-config or treatment-matrix bindings differ",
+    "performance evidence requires the exact TTFT/TPOT/OTT/throughput/batch-delay set, finite domain-valid values, exactly three unique rows per cell and the same model/dataset scope as quality",
+    "an average-winning treatment is adoptable only if every model/dataset/metric cell meets the configured non-negative minimum improvement; worst-case gains are reported",
+    "condition-B noise threshold is recomputed as the maximum within-cell range from three G1 observations per model/dataset, bound to the same ruler, reconciled exactly against G1 rows and generated one-shot from a hash-bound quality result file",
+    "the production offline analysis pipeline can build noise evidence, derive its threshold and run summary-quality-decision in one command; fixture mode cannot invoke the production builder",
+    "execute-mode lifecycle progress is atomically journaled per completed cell; injected failure/resume proved only the exact completed prefix is skipped under matching plan/preflight bindings",
+    "production rows are phase-typed, G1-G4 switches are checked in both phases, checkpoint/service identities are stable, and performance/quality checkpoint plus service-config hashes must match before Step-6 adoption",
+    "profile evidence template and verifier require hash-bound G1/candidate native exports, disabled capture, identical profile workload, at least two models and target-region improvement on each model",
+    "production Step-6 analysis now requires verified profile evidence whose candidate equals the unique performance winner and whose model scope and frozen/config/treatment bindings exactly match the performance and quality evidence",
+    "corrected-budget formal HYPIC-only performance completed three accepted 40/40 fixed-output repetitions; run1 passed the complete strict hot-path evidence gate and the three-run deltas closely reproduce the employee reference",
+    "formal HYPIC historical reproduction completed 18/18 independently audited units; quality deltas are within measured baseline repeat ranges, both experiment containers exited without OOM, and port8224 was released",
+    "formal DRRQR baseline, Dk64 and Dk96 each completed three performance runs and six repeated quality runs under one frozen TP4 serving contract",
+    "Dk64 and Dk96 quality, performance, checkpoint and resource-release evidence passed independent count/index/hash audits; both treatments were rejected by the GSM8K gate",
+    "final state-reduction summary and sample-style report completed with errors=0; final-evidence-audit verified 9 performance runs, 18 quality summaries/details and released NPU4-7/port8225",
+    "completed DRRQR continuation heartbeat deleted so the experiment cannot be unintentionally restarted by that monitor",
+    "Qwen3.8 host-NPU4-7 isolation recovered after the operator stopped the overlapping all-device-mapped container and the unchanged baseline restart passed",
+    "Qwen3.8 plugin-free baseline loaded all 18 model shards and its models endpoint returned HTTP 200",
+    "Qwen3.8 baseline plugin-absence audit passed in all relevant Python environments",
+    "Qwen3.8 deterministic smoke returned BASELINE_OK with 22 prompt tokens and four completion tokens; its raw response was not preserved, so its content hash remains explicitly not established"
+  ],
+  "separate_drrqr_track_open_gates": [
+    "Qwen3.6 Dk64/Dk96 remain complete and rejected; Dk112 remains paused and is not pooled into the Qwen3.8 identity",
+    "finish and independently audit all three Qwen3.8 plugin-free baseline performance repetitions and their aggregate",
+    "repeat the deterministic baseline smoke after performance while saving the raw response bytes and a full 64-character SHA256",
+    "preserve the passed installation plus per-worker hot-path activation evidence from Dk64 and require exact plugin commit 0e0104826ae787e168de5da29ec8507b2dd859ab plus wheel SHA256 7e98f9745041e539d4c80f33c827583bbe4043a564ae26eedbc476bf527b581a for subsequent arms",
+    "finish hash-bound hardware-aligned Qwen3.8 Dk104 and Dk88 plans from the same source checkpoint and calibration identity; retain Dk102/Dk89 only as non-runnable nominal-plan evidence",
+    "run independent treatment performance for the exact 18.75%, 31.25% and 50% arms under the frozen colleague benchmark ruler",
+    "run repeated LongBench-v2 and GSM8K quality only for runtime-valid candidates with meaningful repeated performance improvement; CEval remains excluded",
+    "profile the winning candidate only after performance and quality gates pass, then run the independent final artifact audit"
+  ],
+  "test_contract": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/test-contract.json",
+  "resource_request": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/RESOURCE_REQUEST.md",
+  "resource_intake_template": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/resource-intake.template.json",
+  "received_resource_inventory": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/received-resource-inventory.json",
+  "lifecycle_plan_template": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/lifecycle-plan.template.json",
+  "noise_evidence_template": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/noise-evidence.template.json",
+  "profile_evidence_template": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/profile-evidence.template.json",
+  "completion_audit": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/COMPLETION_AUDIT.md",
+  "loop_guide": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/PIERCING_LOOP.md",
+  "next_action": "No action is required for the closed experiment. If the user continues research, create a new experiment identity for Dk128/Dk104/Dk88/Dk64 numerical parity before any new serving benchmark.",
+  "qwen38_drrqr_plugin_track": {
+    "experiment_id": "state-reduction-qwen38-drrqr-plugin-tp4-20260907",
+    "status": "three-arm-performance-and-longbench-complete-current-candidates-rejected",
+    "model": "/cache/austinov/Qwen3.8-27B",
+    "model_identity": {
+      "dtype": "bfloat16",
+      "indexed_shards": 18,
+      "indexed_weight_bytes": 55563006776,
+      "config_sha256": "191e0af232104ed8b65258cf3fb2b842e288008baca7633c11b82a1ac7203aab",
+      "index_sha256": "77042094076611b69791a610065f28b7013b8c621795fa86ddccc8bac7d1b9df",
+      "declared_architecture": "Qwen3_5ForConditionalGeneration",
+      "text_model_type": "qwen3_5_text",
+      "topology": "64 layers: 48 linear_attention and 16 full_attention; Dk=128, Dv=128",
+      "identity_note": "qwen3_5 names are the checkpoint-declared runtime ABI for this Qwen3.8 asset and are not evidence that a Qwen3.5 checkpoint was substituted"
+    },
+    "calibration": {
+      "status": "frozen-and-independently-audited",
+      "source": "/cache/cch/hhs-aisbench/ais_bench/datasets/LongBench-v2/data_full.json",
+      "source_sha256": "f3833b46bf4ccca48fc2f81a0efdcf9cd362ac2ec426c66068b1363e094250a1",
+      "source_rows": 503,
+      "evaluation_set": "/cache/cch/hhs-aisbench/ais_bench/datasets/LongBench-v2/data.json",
+      "evaluation_sha256": "cdaa9e98deaefbba86f5eadeb287dd2ae90ed8f33313587dc547218b770fa39a",
+      "evaluation_rows": 127,
+      "samples": 16,
+      "tokens_per_sample": 2048,
+      "evaluation_id_overlap_count": 0,
+      "artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/calibration/longbenchv2-non-eval-16x2048-qwen38-inputids.jsonl",
+      "artifact_sha256": "81748f94c4eff0ad5e4053eb7c4a30b1a397a82d45676a8b0b42394bd612bd47",
+      "manifest_sha256": "23368412a40ee61ae558ccec3cef06bc575cba9304bf27c9cd769cf1ab377f2e",
+      "audit_sha256": "67bb45bca7cb1ff0cc216af49746f53748e4f8c66bbe58a2ad667fd0362bc905",
+      "claim_boundary": "This is a documented Ascend adaptation using delivered LongBench-v2, not the paper's FineWeb-Edu calibration corpus."
+    },
+    "resource_lane": "host NPU4-7 only, container-visible 0-3, TP4, CPU0-95, host port8227; host NPU0-3 protected",
+    "baseline_container": "qwen38_drrqr_baseline_exact_host4_7_tp4_20260907_v6",
+    "baseline_artifact_root": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline",
+    "baseline_completed_operation_id": "exec-0000000000000d03",
+    "completed_prune50_performance_operation_id": "exec-0000000000000f48",
+    "active_operation_id": null,
+    "baseline_performance_observed_runs": [
+      {
+        "run": 1,
+        "requests": 40,
+        "fixed_output_requests": 40,
+        "output_tokens": 40960,
+        "output_tokens_per_second": 117.34309265750196,
+        "ttft_mean_ms": 42317.22200951772,
+        "tpot_mean_ms": 78.9575449804291,
+        "benchmark_duration_s": 349.0618755000178,
+        "artifact_sha256": "992a4617197c0e1b12b6bf41a3681fd64bc52b38805785ed8002460b3bbf4b78"
+      },
+      {
+        "run": 2,
+        "requests": 40,
+        "fixed_output_requests": 40,
+        "output_tokens": 40960,
+        "output_tokens_per_second": 122.32673885780494,
+        "ttft_mean_ms": 38885.543035005685,
+        "tpot_mean_ms": 76.76113173754213,
+        "benchmark_duration_s": 334.84093815018423,
+        "artifact_sha256": "ac79afe86bbbe29a444a4e7fa578a2872cd2d3a594f74f83822e717b044979a5"
+      },
+      {
+        "run": 3,
+        "requests": 40,
+        "fixed_output_requests": 40,
+        "output_tokens": 40960,
+        "output_tokens_per_second": 122.31231613412555,
+        "ttft_mean_ms": 38884.59420523723,
+        "tpot_mean_ms": 76.77786338856222,
+        "benchmark_duration_s": 334.8804216501303,
+        "artifact_sha256": "7d477263ab8209375f00beb5ed90e4769fd164bff58312dff5f2959134d07f32"
+      }
+    ],
+    "baseline_performance_mean": {
+      "output_tokens_per_second": 120.66071588314415,
+      "ttft_mean_ms": 40029.11974992021,
+      "tpot_mean_ms": 77.49884670217781,
+      "benchmark_duration_s": 339.59441176677745,
+      "audit_artifact": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/baseline/performance.audit.json",
+      "audit_sha256": "fca7cbb68778a33ac6c0d790a0a878014a865a7c974967cbec12370e7c83d996",
+      "audit_errors": []
+    },
+    "frozen_treatment_arms": [
+      {
+        "label": "20-percent",
+        "source_dk": 128,
+        "target_dk": 102,
+        "actual_reduction_pct": 20.3125
+      },
+      {
+        "label": "30-percent",
+        "source_dk": 128,
+        "target_dk": 89,
+        "actual_reduction_pct": 30.46875
+      },
+      {
+        "label": "50-percent",
+        "source_dk": 128,
+        "target_dk": 64,
+        "actual_reduction_pct": 50.0
+      }
+    ],
+    "runtime_gates": {
+      "isolation_recovery": "passed",
+      "plugin_free_baseline_startup": "passed",
+      "api_models": "passed",
+      "plugin_absence": "passed",
+      "deterministic_smoke": "passed-request-and-raw-response-persisted",
+      "baseline_performance": "passed-three-of-three-audit-errors-zero",
+      "replacement_smoke_artifact": "passed",
+      "baseline_resource_release": "passed-container-exit0-no-oom-port-free-npu4-7-empty",
+      "source_model_full_hash_manifest": "passed-18-of-18-audit-errors-zero",
+      "calibration_dataset_inventory": "passed-503-full-rows-127-evaluation-rows-376-non-evaluation-rows",
+      "disjoint_qwen38_calibration": "passed-16-of-16-rows-2048-tokens-zero-evaluation-id-overlap-audit-errors-zero",
+      "plugin_abi_review": "passed-30-of-30-source-and-installed-wheel-tests-exact-v0.23",
+      "target_plugin_checkout": "local-head-at-d26dd8cde240fb578442f108620e7bb33ef703c4-plugin-0.1.4",
+      "target_plugin_publish": "origin-main-verified-at-d26dd8cde240fb578442f108620e7bb33ef703c4",
+      "baseline_longbench_quality": "passed-three-of-three-mean-45.40682414698163-audit-errors-zero",
+      "baseline_quality_resource_release": "passed-exit0-no-oom-port8227-free-npu4-7-empty",
+      "drrqr_capture": "passed-exec-0000000000000e64-3072-of-3072-16-of-16-three-plans-independent-audit-errors-zero-release-ok",
+      "treatment_activation": "Dk104-Dk88-Dk64-all-passed-four-worker-prefill-and-decode-activation-audits",
+      "comparative_performance": "Dk104-minus-2.746264-percent-Dk88-minus-1.943667-percent-Dk64-plus-8.301873-percent",
+      "repeated_quality": "failed-all-three-arms-on-longbench-quality",
+      "native_profile": "not-run-by-preregistered-gate",
+      "final_audit": "passed-ok-true-errors-empty-12-performance-and-12-quality-runs"
+    },
+    "records": {
+      "incident": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/incident-qwen38-baseline-device-namespace-conflict-20260907.json",
+      "capture_incident": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/incident-qwen38-drrqr-capture-token-binding-20260907.json",
+      "controller_incident": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/incident-qwen38-drrqr-controller-row-index-20260907.json",
+      "treatment_startup_incident": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/incident-qwen38-drrqr-treatment-startup-compatibility-20260908.json",
+      "capture_audit": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/capture-qwen38-v4/capture.audit.json",
+      "experiment": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/experiment-state-reduction-qwen38-drrqr-plugin-tp4-20260907.json",
+      "evidence": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/evidence-state-reduction-qwen38-drrqr-plugin-tp4-20260907.json",
+      "decision": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/decision-state-reduction-qwen38-drrqr-plugin-tp4-20260907.json",
+      "knowledge_proposals": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/knowledge-proposals-state-reduction-qwen38-drrqr-plugin-20260907.json",
+      "final_audit": "/cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/final-evidence-audit.json",
+      "markdown_report": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/QWEN38_DRRQR_PIERCING_REPORT.md",
+      "html_report": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/QWEN38_DRRQR_PIERCING_REPORT.html"
+    },
+    "recovery": {
+      "operation": "all accepted baseline and treatment operations are terminal; treatment quality operations exec-0000000000000ff9, exec-0000000000001043, and exec-0000000000001071 must not be restarted",
+      "artifact_check": "run python3 .agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/audit_qwen38_drrqr_final.py and require ok=true with errors=[]; verify /cache/cch/state-reduction-qwen38-drrqr-plugin-tp4-20260907/final-evidence-audit.json SHA256 2c169e608e5221bd86b2bd1bf952cc3124f3296d3508ac72f8e97af10ddd5383",
+      "failure_rule": "the current experiment is closed and all three candidates are rejected; do not resume or reinterpret it. Any numerical/kernel parity investigation must use a new experiment identity and fresh baseline. For plugin reproduction, require origin/main and local HEAD d26dd8cde240fb578442f108620e7bb33ef703c4 and wheel SHA256 014200a9c32f0b05fd0ea328f8664de43849a80aca2fa7a9d6cb46299aaa3d40 before execution"
+    }
+  },
+  "hypic_piercing": {
+    "objective": "Reproduce the employee HYPIC v0.8.5 serving result on the complete Qwen3.6-27B checkpoint using a fresh no-cache versus HYPIC-only TP4 ruler on host NPU4-7, while preserving separate PDC-coexistence and earlier invalid-budget decisions.",
+    "status": "formal-npu4-7-budget40960-reproduction-complete",
+    "decision": "Adopt HYPIC for the frozen Qwen3.6-27B TP4 no-cache workload with quality guardrails; the separate PDC coexistence configuration remains rejected.",
+    "resource_claim": "The formal case used only host NPU4-7, CPU0-95 and port8224. Both exact experiment containers are exited and port8224 is released. NPU0-3 remained protected.",
+    "ceval": "excluded by operator",
+    "niah_plus": "blocked because authoritative delivered data files are absent",
+    "records": {
+      "experiment": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/experiment-hypic-qwen36.json",
+      "evidence": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/evidence-hypic-qwen36.json",
+      "decision": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/decision-hypic-qwen36.json",
+      "previous_practice": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/hypic-previous-practice-reference.json",
+      "comparison": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/hypic-current-vs-previous-comparison.json",
+      "profile_recovery": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/profile-failure-20260905.json",
+      "evidence_verifier": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/verify_hypic_evidence.py",
+      "final_evidence_audit": "/cache/cch/hypic-qwen36-piercing-20260904/final-evidence-audit.json",
+      "historical_experiment": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/experiment-hypic-historical-ruler.json",
+      "historical_evidence": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/evidence-hypic-historical-ruler.json",
+      "historical_decision": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/decision-hypic-historical-ruler.json",
+      "formal_tp2_experiment": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/experiment-hypic-formal-npu4-5-tp2.json",
+      "formal_tp2_evidence": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/evidence-hypic-formal-npu4-5-tp2.json",
+      "formal_tp2_decision": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/decision-hypic-formal-npu4-5-tp2.json",
+      "formal_tp4_experiment": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/experiment-hypic-formal-npu4-7-tp4.json",
+      "formal_tp4_evidence": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/evidence-hypic-formal-npu4-7-tp4.json",
+      "formal_tp4_decision": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/decision-hypic-formal-npu4-7-tp4.json",
+      "formal_tp4_budget40960_experiment": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/experiment-hypic-formal-npu4-7-tp4-b40960.json",
+      "formal_tp4_budget40960_evidence": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/evidence-hypic-formal-npu4-7-tp4-b40960.json",
+      "formal_tp4_budget40960_decision": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/decision-hypic-formal-npu4-7-tp4-b40960.json",
+      "retrospective": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/MAINTAINER_RETROSPECTIVE.md",
+      "design_review": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/PAPER_TO_LAB_DESIGN_REVIEW.md",
+      "experience_ingestion": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/experience-ingestion-20260905.json"
+    },
+    "current_result": "The corrected no-cache versus HYPIC-only ruler completed 18/18 accepted units. Mean TTFT improved 43.6345%, TPOT improved 18.9911%, output throughput improved 36.0663%, and duration improved 26.6028%. LongBench-v2 changed -0.2625pp and GSM8K -0.1516pp, both within the corresponding observed baseline three-run ranges. Strict HYPIC hot-path evidence and the independent artifact audit passed. The earlier PDC-coexistence profile remains a separate rejected decision and is not pooled.",
+    "next_action": "Review and reuse the paper-to-Ascend skill. For a new paper or target, allocate a fresh lane and artifact root, freeze a new same-denominator ruler, and repeat the gated workflow.",
+    "formal_tp4_reproduction": {
+      "status": "in-progress-hypic-only-performance-run1",
+      "last_verified_at": "2026-09-06T10:52:07Z",
+      "controller_pid": 1422143,
+      "evaluator_pid": null,
+      "output_root": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-20260906",
+      "resource_lane": "host NPU4-7, TP4, CPU0-95, port8224",
+      "baseline_longbenchv2_run1": {"requests": 127, "successful": 127, "failed": 0, "correct": 58, "accuracy_pct": 45.669291338582674},
+      "baseline_longbenchv2_run2": {"requests": 127, "successful": 127, "failed": 0, "correct": 62, "accuracy_pct": 48.818897637795274, "details_sha256": "cba734cf27625477e165758243ed2b39c05bcba039b638c5c3a71a71fc34cafb"},
+      "baseline_longbenchv2_run3": {"requests": 127, "successful": 127, "failed": 0, "correct": 59, "accuracy_pct": 46.45669291338583, "details_sha256": "c1a64e8010a95ae37967d769123ac120b96377a2a3cf184f61c5a75e25436a1e"},
+      "baseline_longbenchv2_three_run_aggregate": {"mean_accuracy_pct": 46.98162729658793, "population_stddev": 1.3383253316516495, "range_pp": 3.1496062992126},
+      "baseline_gsm8k_run1": {"requests": 1319, "successful": 1319, "failed": 0, "correct": 1268, "accuracy_pct": 96.13343442001516, "details_sha256": "43c0fdc5f79e1548ba1c00fca24938a4745955ae7d3b822ee8018188b1517d5c", "summary_sha256": "1d8592f5b6585df36b430901b9be0a3e43320d084f13f2d129304b33e667ffe8"},
+      "baseline_gsm8k_run2": {"requests": 1319, "successful": 1319, "failed": 0, "correct": 1266, "accuracy_pct": 95.98180439727066, "details_sha256": "61a3ea0c286f7086afaaa9fec9850c8ebfc8d07159a7757830191b231349e425", "summary_sha256": "7a8cd83e112f145b7a49d0dbf075aff66cc12cea4298d23b1da870085adafebe"},
+      "baseline_gsm8k_run3": {"requests": 1319, "successful": 1319, "failed": 0, "correct": 1269, "accuracy_pct": 96.20924943138742, "details_sha256": "35898d35a286f0b9ec095dff34a24b969fb2141eba5873206c2c06849fe5aa71", "summary_sha256": "f6b210481a45fc332ef5608a7f35ccf43b372e08ff329857c325c29d7c34f71a"},
+      "analyzer_repair": "summarize_hypic_historical_reproduction.py now validates the evaluator's requests field instead of nonexistent total and renders the runtime-selected TP/NPU lane; py_compile and an allow-incomplete render correctly accepted LongBench-v2 run1",
+      "resume_command": "cd /cache/cch/.worktrees/WS-20260904-qwen38-dense-paper-to-ascend && HYPIC_OUTPUT_ROOT=/cache/cch/hypic-qwen36-formal-npu4-7-tp4-20260906 HYPIC_MODEL_NAME=qwen36-formal-npu4-7-tp4 HYPIC_PORT=8224 HYPIC_CPUSET=0-95 HYPIC_BASELINE_CONTAINER=qwen36_hypic_nocache_baseline_npu4_7_tp4 HYPIC_TREATMENT_CONTAINER=qwen36_hypic_only_npu4_7_tp4 HYPIC_EXPERIMENT_ID=hypic-qwen36-formal-npu4-7-tp4-20260906 HYPIC_HOST_NPU_FIRST=4 HYPIC_HOST_NPU_LAST=7 HYPIC_VISIBLE_DEVICES=0,1,2,3 HYPIC_CONTAINER_DEVICE_FIRST=0 HYPIC_TP_SIZE=4 HYPIC_HCCL_PORT_RANGE=26800-26900 HYPIC_MEMORY_LIMIT=48g HYPIC_REFERENCE_SHA256=204b01d76eff8a0fd69a4a048de44da8385c6bfdc250c1efb8af542b63fb438c bash .agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/resume_hypic_historical_reproduction.sh"
+    },
+    "formal_tp4_budget40960_reproduction": {
+      "status": "complete",
+      "last_verified_at": "2026-09-06T17:36:53Z",
+      "controller_operation_id": "exec-00000000000009ab",
+      "controller_pid": 1124101,
+      "output_root": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906",
+      "resource_lane": "host NPU4-7, TP4, CPU0-95, port8224; released after completion; NPU0-3 protected",
+      "accepted_units": 18,
+      "expected_units": 18,
+      "resume_operation": {
+        "operation_id": "exec-00000000000009ab",
+        "route": "peer_direct",
+        "self_test": "passed",
+        "skipped_validated_units": 15,
+        "active_unit": null,
+        "controller_exit_code": 0,
+        "all_treatment_gsm8k_runs_accepted": true
+      },
+      "latest_interruption": {
+        "unit": "baseline GSM8K run2",
+        "successful_rows_preserved": 923,
+        "failed_rows_to_retry": 396,
+        "correct_among_preserved": 889,
+        "partial_details_sha256": "4a12042f39119ef7c19b052fe29def87b248e391d7466d394498d5522f6ae960",
+        "accepted": false,
+        "container_oom_killed": false,
+        "container_cleanup_exit_code": 0,
+        "recovery": "same controller and artifact root; evaluator resumes only indexes without an ok row"
+      },
+      "baseline_performance_three_run_mean": {
+        "duration_s": 331.4196255898569,
+        "ttft_mean_ms": 40357.59093925784,
+        "tpot_weighted_ms": 74.50746276237828,
+        "output_tokens_per_second": 123.76534746307429
+      },
+      "baseline_longbenchv2_run1": {
+        "summary_artifact": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906/quality/no-cache/longbenchv2.run1.summary.json",
+        "details_artifact": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906/quality/no-cache/longbenchv2.run1.jsonl",
+        "requests": 127,
+        "successful": 127,
+        "failed": 0,
+        "correct": 56,
+        "accuracy_pct": 44.09448818897638,
+        "details_sha256": "807f06f603475aac6a161c70319d6b2a6055dbb4192e483f710a8b386157656a",
+        "summary_sha256": "3ba38ad6f2169b7bf1439662693c5e08fb64be74b7123408fe3607fdacc18c04",
+        "hash_verified": true,
+        "unique_indexes": 127,
+        "unique_response_sha256": 127
+      },
+      "baseline_longbenchv2_run2": {
+        "summary_artifact": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906/quality/no-cache/longbenchv2.run2.summary.json",
+        "details_artifact": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906/quality/no-cache/longbenchv2.run2.jsonl",
+        "requests": 127,
+        "successful": 127,
+        "failed": 0,
+        "correct": 57,
+        "accuracy_pct": 44.881889763779526,
+        "details_sha256": "0c236d9b0d98d5789fff056b210aaf92dc9f0923545423b35e06760058053173",
+        "summary_sha256": "1d44c28e493bb642e9f00ca8bae5b7633860b86df772194eb0125262df11d473",
+        "hash_verified": true,
+        "unique_indexes": 127,
+        "unique_response_sha256": 127
+      },
+      "baseline_longbenchv2_run3": {
+        "summary_artifact": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906/quality/no-cache/longbenchv2.run3.summary.json",
+        "details_artifact": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906/quality/no-cache/longbenchv2.run3.jsonl",
+        "requests": 127,
+        "successful": 127,
+        "failed": 0,
+        "correct": 63,
+        "accuracy_pct": 49.60629921259842,
+        "details_sha256": "1c5d00cb730f3cce6a49f30414696a098d26cffeb38aae6f96e05d61fa4a6356",
+        "summary_sha256": "4d18a7f1f802850a9b95b68ae72e3834df2b7dce920d8d454b5a6309737b6a67",
+        "hash_verified": true,
+        "unique_indexes": 127,
+        "unique_response_sha256": 127
+      },
+      "baseline_gsm8k_run1": {
+        "summary_artifact": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906/quality/no-cache/gsm8k.run1.summary.json",
+        "details_artifact": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906/quality/no-cache/gsm8k.run1.jsonl",
+        "requests": 1319,
+        "successful": 1319,
+        "failed": 0,
+        "correct": 1268,
+        "accuracy_pct": 96.13343442001516,
+        "details_sha256": "0227f668edbc04dc407345fc05b8a61d50fc128291ffe977a8f6b160f131a0bb",
+        "summary_sha256": "eafc16d3f246f798446791714536ca6a6bf2e4ba52bb1c86a85e8bb0bfe98a0c",
+        "hash_verified": true,
+        "unique_indexes": 1319,
+        "unique_response_sha256": 1319
+      },
+      "final_summary": {
+        "performance_delta_pct": {"ttft": -43.63447512683103, "tpot": -18.99108291418369, "output_throughput": 36.066291634029724, "duration": -26.602831422417992},
+        "quality_delta_pp": {"longbenchv2": -0.26246719160104703, "gsm8k": -0.15163002274451287},
+        "historical_direction_reproduced": true,
+        "strict_hot_path_verified": true,
+        "audit_path": "/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906/historical-reproduction-evidence-audit.json",
+        "audit_ok": true,
+        "audit_errors": [],
+        "containers_exited": true,
+        "port_8224_released": true
+      },
+      "resume_command": "cd /cache/cch/.worktrees/WS-20260904-qwen38-dense-paper-to-ascend && export HYPIC_OUTPUT_ROOT=/cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906 HYPIC_MODEL_NAME=qwen36-formal-npu4-7-tp4-b40960 HYPIC_PORT=8224 HYPIC_CPUSET=0-95 HYPIC_BASELINE_CONTAINER=qwen36_hypic_nocache_baseline_npu4_7_tp4_b40960 HYPIC_TREATMENT_CONTAINER=qwen36_hypic_only_npu4_7_tp4_b40960 HYPIC_EXPERIMENT_ID=hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906 HYPIC_HOST_NPU_FIRST=4 HYPIC_HOST_NPU_LAST=7 HYPIC_VISIBLE_DEVICES=0,1,2,3 HYPIC_CONTAINER_DEVICE_FIRST=0 HYPIC_TP_SIZE=4 HYPIC_HCCL_PORT_RANGE=26000-26100 HYPIC_MAX_NUM_BATCHED_TOKENS=40960 HYPIC_REFERENCE_SHA256=204b01d76eff8a0fd69a4a048de44da8385c6bfdc250c1efb8af542b63fb438c && bash .agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/resume_hypic_historical_reproduction.sh",
+      "audit_command": "python3 .agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/audit_hypic_historical_reproduction.py --root /cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906 --output /cache/cch/hypic-qwen36-formal-npu4-7-tp4-budget40960-20260906/historical-reproduction-evidence-audit.json"
+    },
+    "historical_reproduction": {
+      "status": "paused-by-operator-after-baseline-longbenchv2-run1",
+      "controller_operation_id": "exec-00000000000005b0",
+      "controller_operation_status": "terminated-by-operator-pause",
+      "heartbeat_automation_status": "hypic-historical-reproduction paused",
+      "last_verified_at": "2026-09-05T21:12:20Z",
+      "last_verified_state": "static pause revalidation: no controller or evaluator process, the exact baseline container is exited, the treatment container remains created and never started, port 8223 has no listener, and host NPU0-3 device nodes have no users; validated LongBench-v2 run1 and all three baseline performance artifacts are preserved",
+      "resume_commands": [
+        "cd /cache/cch/.worktrees/WS-20260904-qwen38-dense-paper-to-ascend",
+        "bash .agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/resume_hypic_historical_reproduction.sh --self-test",
+        "bash .agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/resume_hypic_historical_reproduction.sh"
+      ],
+      "baseline_longbenchv2_run1": {
+        "summary_artifact": "/cache/cch/hypic-qwen36-historical-reproduction-20260905/quality/no-cache/longbenchv2.run1.summary.json",
+        "details_artifact": "/cache/cch/hypic-qwen36-historical-reproduction-20260905/quality/no-cache/longbenchv2.run1.jsonl",
+        "requests": 127,
+        "successful": 127,
+        "failed": 0,
+        "correct": 57,
+        "accuracy_pct": 44.881889763779526,
+        "finish_reasons": {"stop": 75, "length": 52},
+        "details_sha256": "bae9efdf3193861066b8bff5e0ccabefcc8a4945a37defaf2ddfb0e1b1c36853",
+        "hash_verified": true,
+        "unique_response_sha256": 127
+      },
+      "baseline_performance_run1": {
+        "artifact": "/cache/cch/hypic-qwen36-historical-reproduction-20260905/no-cache/performance.run1.json",
+        "successful_requests": 40,
+        "failed_requests": 0,
+        "fixed_output_verified": true,
+        "benchmark_duration_s": 1407.618124090135,
+        "ttft_mean_ms": 48417.82346973196,
+        "tpot_weighted_ms": 415.4430098433588,
+        "output_tokens_per_second": 29.098801229542264
+      },
+      "baseline_performance_run2": {
+        "artifact": "/cache/cch/hypic-qwen36-historical-reproduction-20260905/no-cache/performance.run2.json",
+        "successful_requests": 40,
+        "failed_requests": 0,
+        "fixed_output_verified": true,
+        "benchmark_duration_s": 1378.7459243000485,
+        "ttft_mean_ms": 42207.405620999634,
+        "tpot_weighted_ms": 410.68125803470576,
+        "output_tokens_per_second": 29.708156722779993
+      },
+      "baseline_performance_run3": {
+        "artifact": "/cache/cch/hypic-qwen36-historical-reproduction-20260905/no-cache/performance.run3.json",
+        "successful_requests": 40,
+        "failed_requests": 0,
+        "fixed_output_verified": true,
+        "benchmark_duration_s": 1373.6110106999986,
+        "ttft_mean_ms": 41949.86784176435,
+        "tpot_weighted_ms": 409.5935266808277,
+        "output_tokens_per_second": 29.819213504357826
+      },
+      "baseline_performance_three_run_mean": {
+        "benchmark_duration_s": 1386.6583530300607,
+        "ttft_mean_ms": 44191.69897749865,
+        "tpot_weighted_ms": 411.90593151963077,
+        "output_tokens_per_second": 29.542057152226693
+      },
+      "superseded_controller_attempt": "exec-0000000000000505 stopped before performance after an NPU empty-state parser defect was found and corrected; cleanup left NPU0-3 empty",
+      "superseded_quality_attempt": "exec-000000000000050d exited 2 before the first quality request because eleven literal plus arguments reached hypic_quality_eval.py; cleanup stopped only the exact baseline container, the quality and final-hash command blocks were repaired, and bash syntax/static/self-test/diff validation passed before resume",
+      "superseded_summary_verifier_attempt": "exec-0000000000000562 completed with exit 1 only after baseline LongBench-v2 run1 had written a valid 127/127, zero-failure summary; its already-loaded verifier expected the nonexistent total field instead of requests, cleanup exited only the exact baseline container, the summary and details hash were independently validated, the on-disk verifier and self-test passed, and exec-00000000000005b0 resumed without rerunning run1",
+      "operator_pause": "At 2026-09-05T18:16:20Z the exact controller process for exec-00000000000005b0 received SIGTERM on operator request while the baseline quality service was still initializing for LongBench-v2 run2; the EXIT cleanup stopped only qwen36_hypic_nocache_baseline_npu0_3, treatment remained unstarted, NPU0-3 were verified empty, and run2 had emitted no artifact",
+      "contract": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/hypic-historical-reproduction-contract.json",
+      "controller": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/resume_hypic_historical_reproduction.sh",
+      "analyzer": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/summarize_hypic_historical_reproduction.py",
+      "output_root": "/cache/cch/hypic-qwen36-historical-reproduction-20260905",
+      "primary_comparison": "HYPIC-only versus HYPIC-disabled, with native prefix caching disabled in both arms",
+      "performance_repetitions_per_arm": 3,
+      "quality_repetitions_per_arm_and_dataset": 3,
+      "available_quality_datasets": ["LongBench-v2", "GSM8K"],
+      "ceval": "excluded by operator",
+      "niah_plus": "authoritative files absent"
+    }
+  },
+  "state_reduction_piercing": {
+    "objective": "Validate The Key to State Reduction in Linear Attention: A Rank-based Perspective on Qwen3.6-27B using official Strong RRQR channel selection and a same-denominator Ascend TP4 serving A/B.",
+    "status": "complete-reject-dk64-and-dk96",
+    "resource_lane": "host NPU4-7, container-visible 0-3, TP4, CPU0-95, port8225; released after final audit; NPU0-3 protected and not inspected",
+    "output_root": "/cache/cch/state-reduction-qwen36-formal-npu4-7-tp4-20260906",
+    "checkpoint": "/cache/cch/Qwen3.6-27B-gdn-drrqr-dk96",
+    "completed": [
+      "frozen adapted 16x2048-token calibration corpus",
+      "3072-file complete Q/K capture audit",
+      "48-layer official Strong-RRQR Dk64 checkpoint",
+      "real-weight Ascend Dk64 health/completion smoke",
+      "baseline performance 3/3 repetitions, all 40/40 fixed-output requests accepted",
+      "baseline quality 6/6 repetitions accepted: LongBench-v2 3/3 and GSM8K 3/3",
+      "Dk64 treatment performance 3/3 repetitions, all 40/40 fixed-output requests accepted",
+      "Dk64 treatment quality 6/6 repetitions independently accepted; LongBench-v2 passed but GSM8K failed the preregistered variability gate",
+      "Dk64 treatment container exited 0 without OOM and NPU4-7 were released",
+      "independent official Strong-RRQR Dk96 checkpoint build and structural audit",
+      "real-weight Dk96 Ascend smoke with exact response and head_k_dim=96 runtime evidence",
+      "Dk96 treatment performance 3/3 repetitions, all 40/40 fixed-output requests accepted; all mean directions favorable but baseline and Dk96 three-run ranges overlap"
+      ,"Dk96 treatment quality 6/6 repetitions independently accepted; LongBench-v2 passed but GSM8K failed the preregistered variability gate"
+      ,"final report and evidence audit completed; profiling intentionally skipped by the preregistered failed-quality rule"
+    ],
+    "current_operation": {
+      "operation_id": "exec-0000000000000c1b",
+      "phase": "complete",
+      "active_unit": null,
+      "last_verified_at": "2026-09-07T04:37:39.503821+00:00",
+      "observed_progress": "Operation exited 0 after all six Dk96 quality repetitions. GSM8K runs were 1265/1319, 1268/1319 and 1266/1319; the mean loss of 0.303260 pp exceeds the baseline range 0.151630 pp. Final summary completed with errors=0 and the resource/evidence audit verified true.",
+      "route": "peer_direct",
+      "target_peer": "lgw_53d59c2f73ef4b81ba3cc0e00c2f8d35"
+    },
+    "accepted_treatment_quality_runs": {
+      "longbenchv2_run1": {
+        "requests": 127,
+        "successful": 127,
+        "failed": 0,
+        "correct": 63,
+        "accuracy_pct": 49.60629921259842,
+        "summary_sha256": "4396f56d515d2da5054b849c82757221d769ac183ec44d16df51d9527289046d",
+        "details_sha256": "5250567dfb8c4e5467e79e5d5f599bc4161e499432dabfda7f3d32e83f6079c5"
+      },
+      "longbenchv2_run2": {
+        "requests": 127,
+        "successful": 127,
+        "failed": 0,
+        "correct": 59,
+        "accuracy_pct": 46.45669291338583,
+        "summary_sha256": "11aa6e11f133adef83234807b69fa743a202db0606bb9fee0fdcdd982ebfb5c8",
+        "details_sha256": "9cd5e4c2b93003a9f44cc9d9f0ea5dcd9943147f5a1356f990a5b3ec7638ec2e"
+      },
+      "longbenchv2_run3": {
+        "requests": 127,
+        "successful": 127,
+        "failed": 0,
+        "correct": 62,
+        "accuracy_pct": 48.818897637795274,
+        "summary_sha256": "3821194a84c9c3eb4830a810aff349919fcef82b02db565b1161b18d7991b6af",
+        "details_sha256": "0ae2e181bdb0e0910b66fc62736532f543603715c2e16ad9698f3360e935b59a"
+      },
+      "gsm8k_run1": {
+        "requests": 1319,
+        "successful": 1319,
+        "failed": 0,
+        "correct": 1269,
+        "accuracy_pct": 96.20924943138742,
+        "summary_sha256": "fab6abc4d9d53507831197951135a44854bb1e8eb3e7de9823adffee639e906d",
+        "details_sha256": "87045034f4144e8f25d707783c90bca3268560915f491c04bac896f1edd0a035"
+      },
+      "gsm8k_run2": {
+        "requests": 1319,
+        "successful": 1319,
+        "failed": 0,
+        "correct": 1267,
+        "accuracy_pct": 96.0576194086429,
+        "summary_sha256": "5929311e641cbbf32361b425b31fd137e4f9e759da1a08111ef9587d84d4c56d",
+        "details_sha256": "e72b72c3d623ae1236095a1f7256fd9bdcc11697d4366059bc8abb2c4237f274"
+      },
+      "gsm8k_run3": {
+        "requests": 1319,
+        "successful": 1319,
+        "failed": 0,
+        "correct": 1267,
+        "accuracy_pct": 96.0576194086429,
+        "summary_sha256": "bd62db3b496746471c76bf3d16bf55ccb3a5e076edc028e31a1bd66d7e71a508",
+        "details_sha256": "98925497b09f93df524a28058475e7b8a6d03a762ec12c91f1dfbf023b114314"
+      }
+    },
+    "treatment_quality_partial_aggregate": {
+      "longbenchv2": {
+        "three_run_mean_accuracy_pct": 48.29396325459317,
+        "sample_sd_pp": 1.6391070861938024,
+        "range_pp": 3.149606299212593,
+        "delta_vs_baseline_pp": 2.6246719160104988,
+        "predeclared_quality_gate_pass": true
+      },
+      "gsm8k": {
+        "three_run_mean_accuracy_pct": 96.10816274955775,
+        "sample_sd_pp": 0.08754363444877358,
+        "range_pp": 0.15163002274451287,
+        "delta_vs_baseline_pp": -0.20217336365934102,
+        "baseline_range_pp": 0.15163002274449866,
+        "predeclared_quality_gate_pass": false
+      }
+    },
+    "accepted_dk96_quality_runs": {
+      "longbenchv2_run1": {
+        "requests": 127,
+        "successful": 127,
+        "failed": 0,
+        "correct": 60,
+        "accuracy_pct": 47.24409448818898,
+        "summary_sha256": "005f533016d8c63e68e77f664036f1d50cd76fd643f9d4c328e3c2d42a58b728",
+        "details_sha256": "63f717d4bec3a3fbca2af77b7b5d5d8b51a0007fbdc86541e1d55e6be7c77d66",
+        "exact_index_audit": true
+      },
+      "gsm8k_run3": {
+        "requests": 1319,
+        "successful": 1319,
+        "failed": 0,
+        "correct": 1266,
+        "accuracy_pct": 95.98180439727066,
+        "summary_sha256": "c836f122866709835377dfbb5e2e60964adac6dda8baa28c3ccd80ff9a37231d",
+        "details_sha256": "5e11e9cbffe39d3262fc6dd88df5fd5a622404f9670bc4a70ec71776cd59df29",
+        "exact_index_audit": true
+      },
+      "longbenchv2_run2": {
+        "requests": 127,
+        "successful": 127,
+        "failed": 0,
+        "correct": 66,
+        "accuracy_pct": 51.968503937007874,
+        "summary_sha256": "826c51296dd7f31bb8f68448a7ae65f79a3acda3eb3a36c6a3749ff68aaeb3a9",
+        "details_sha256": "8f83c0477ed486a115bc9d4a90b8edad4085b2e109bf76d1704b23b28316e71d",
+        "exact_index_audit": true
+      },
+      "longbenchv2_run3": {
+        "requests": 127,
+        "successful": 127,
+        "failed": 0,
+        "correct": 62,
+        "accuracy_pct": 48.818897637795274,
+        "summary_sha256": "acbc12b9f7aa71a7436b2c3ae882c0110d5934a60d4839df0c2af6507355e256",
+        "details_sha256": "59773f08263dd4366e1ccd5a12b0ac32bf5bed0b19ebabbb01af3da1fcb63ffc",
+        "exact_index_audit": true
+      },
+      "gsm8k_run1": {
+        "requests": 1319,
+        "successful": 1319,
+        "failed": 0,
+        "correct": 1265,
+        "accuracy_pct": 95.90598938589841,
+        "summary_sha256": "b11d73a90aa7af15752f99b7fa7e32deee75ed37874353dcdae8553e9633dd12",
+        "details_sha256": "6bdc392670d17a05a196356c4251d2857fc0951c1365ae3edf762a93a5205ac4",
+        "exact_index_audit": true
+      },
+      "gsm8k_run2": {
+        "requests": 1319,
+        "successful": 1319,
+        "failed": 0,
+        "correct": 1268,
+        "accuracy_pct": 96.13343442001516,
+        "summary_sha256": "19b6d7ae20f2bdb28315f5ae932bac842877486b0893a23972c666a7027ba751",
+        "details_sha256": "6fffa04b79357e1cc9d179550e44b849732a3c1bcbb0cf03e751e5c10a3e08f9",
+        "exact_index_audit": true
+      }
+    },
+    "dk96_quality_partial_aggregate": {
+      "longbenchv2": {
+        "three_run_mean_accuracy_pct": 49.343832020997375,
+        "sample_sd_pp": 2.405551545908577,
+        "range_pp": 4.724409448818896,
+        "delta_vs_baseline_pp": 3.674540682414701,
+        "baseline_range_pp": 3.937007874015748,
+        "predeclared_quality_gate_pass": true
+      },
+      "gsm8k": {
+        "three_run_mean_accuracy_pct": 96.00707606772808,
+        "sample_sd_pp": 0.11580934280909323,
+        "range_pp": 0.2274450341167551,
+        "delta_vs_baseline_pp": -0.3032600459944206,
+        "baseline_range_pp": 0.15163002274449866,
+        "predeclared_quality_gate_pass": false
+      }
+    },
+    "performance_three_run_means": {
+      "baseline": {
+        "ttft_mean_ms": 38456.89009033182,
+        "tpot_mean_ms": 73.62882260916483,
+        "output_tokens_per_second": 125.81913394499912,
+        "benchmark_duration_s": 325.90221148659475
+      },
+      "drrqr_dk64": {
+        "ttft_mean_ms": 37411.85490474066,
+        "tpot_mean_ms": 71.69947852370143,
+        "output_tokens_per_second": 129.2305042791354,
+        "benchmark_duration_s": 317.429595243341
+      },
+      "drrqr_dk96": {
+        "ttft_mean_ms": 38302.67557491703,
+        "tpot_mean_ms": 73.3028780859339,
+        "output_tokens_per_second": 126.29814862991877,
+        "benchmark_duration_s": 324.83620704330195,
+        "run_sha256": [
+          "32a7d0136b98ac66056dd897c3516e14a8cc5af7a3f87ae5c649d0650f40e694",
+          "91bcc4632fb251f95fe8ae422ae00b20ac8a3df76cc51b27803be4ae223b3190",
+          "9e95f1c810a44e00bd33132cddfa2b5046d5e57906708dc3c8eecf2d848fdfc6"
+        ]
+      },
+      "relative_change_percent": {
+        "ttft": -2.717419903524343,
+        "tpot": -2.6203652551999967,
+        "output_throughput": 2.711328736078844,
+        "duration": -2.5997418687667473
+      },
+      "relative_change_percent_drrqr_dk96": {
+        "ttft": -0.40100620388716646,
+        "tpot": -0.4426860467300675,
+        "output_throughput": 0.38071688295688855,
+        "duration": -0.32709334460608863
+      },
+      "interpretation": "All mean directions are favorable, but baseline and treatment three-run ranges overlap; do not claim a repeat-separated stable serving benefit."
+    },
+    "records": {
+      "experiment": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/experiment-state-reduction-qwen36-formal-npu4-7-tp4.json",
+      "evidence": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/evidence-state-reduction-qwen36-formal-npu4-7-tp4.json",
+      "decision": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/decision-state-reduction-qwen36-formal-npu4-7-tp4.json",
+      "runner": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/state_reduction_formal_runner.py",
+      "native_profile_runner": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/state_reduction_native_profile.py",
+      "failure_ledger": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/experiment-failures-state-reduction-qwen36.json",
+      "knowledge_proposals": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/knowledge-proposals-state-reduction-qwen36.json"
+      ,"summary": "/cache/cch/state-reduction-qwen36-formal-npu4-7-tp4-20260906/state-reduction-summary.json"
+      ,"report": "/cache/cch/state-reduction-qwen36-formal-npu4-7-tp4-20260906/STATE_REDUCTION_PIERCING_REPORT.md"
+      ,"final_evidence_audit": "/cache/cch/state-reduction-qwen36-formal-npu4-7-tp4-20260906/final-evidence-audit.json"
+      ,"maintainer_retrospective": ".agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/MAINTAINER_RETROSPECTIVE.md"
+    },
+    "claim_boundary": "It is valid to claim mechanism feasibility and the measured frozen-workload results. It is not valid to claim paper-exact reproduction, stable serving acceleration, losslessness or adoption. The paper's H100 training microbenchmark is not a same-denominator comparison.",
+    "resume_command": "No resume is required: operation exec-0000000000000c1b completed successfully. For audit rerender only: python3 /cache/cch/.worktrees/WS-20260904-qwen38-dense-paper-to-ascend/.agents/workstreams/WS-20260904-qwen38-dense-paper-to-ascend/summarize_state_reduction_formal.py --root /cache/cch/state-reduction-qwen36-formal-npu4-7-tp4-20260906"
+  }
+}
