@@ -1,7 +1,8 @@
 # Heterogeneous state arena native ABI probe
 
 Date: 2026-09-09
-Status: stopped at a native dtype precondition; heterogeneous arena compatibility remains untested.
+Status: v4 NPU arena ABI gate passed. Earlier failed v1–v3 experiments are retained below.
+The subsequent real-runner allocation gate is recorded in HETEROGENEOUS_RUNNER_ALLOCATION.md.
 
 ## Declared experiment
 
