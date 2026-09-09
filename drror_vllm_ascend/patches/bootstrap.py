@@ -174,6 +174,8 @@ def apply_patches(config: DrrqrConfig) -> None:
 
     def prepare_runtime(plan):
         verify_worker()
+        from .layerwise import install_layerwise_cache_guard
+        install_layerwise_cache_guard(NPUModelRunner, config, plan)
         install_decode_observer(QwenGatedDeltaNetAttention, gdn, config)
 
     # Patch the top-level loader, which receives one complete checkpoint
@@ -182,6 +184,7 @@ def apply_patches(config: DrrqrConfig) -> None:
     install_model_patch(
         Qwen3_5ForConditionalGeneration,
         config,
+        attention_cls=QwenGatedDeltaNetAttention,
         prepare_runtime=prepare_runtime,
     )
     emit_evidence(

@@ -75,6 +75,23 @@ class ConvRuntimeTests(unittest.TestCase):
         self.assertTrue(all(torch.equal(module.conv1d.weight, original)
                             for (_, module), original in zip(model.targets, before)))
 
+    def test_layerwise_widths_checked_before_repacking(self):
+        dims = {i: (128 if i == 50 else 32 if i in (8, 22) else 64)
+                for i in runtime.LINEAR_LAYERS}
+        model = Model()
+        model.targets = [(name, Gdn(dims[int(name.split(".")[2])]))
+                         for name, _ in model.targets]
+        originals = [m.conv1d.weight.detach().clone() for _, m in model.targets]
+        wrong = dict(dims)
+        wrong[50] = 64
+        with self.assertRaisesRegex(RuntimeError, "unexpected local shape"):
+            runtime.prepare_model(model, Gdn, expected_dk=wrong, require_npu=False)
+        self.assertTrue(all(m.conv1d.weight.is_contiguous() for _, m in model.targets))
+        rows = runtime.prepare_model(model, Gdn, expected_dk=dims, require_npu=False)
+        self.assertEqual({r["layer"]: r["key_head_dim"] for r in rows}, dims)
+        self.assertTrue(all(torch.equal(m.conv1d.weight, before)
+                            for (_, m), before in zip(model.targets, originals)))
+
     def test_runner_order_reload_rejection_and_idempotent_install(self):
         calls = []
         model = Model()

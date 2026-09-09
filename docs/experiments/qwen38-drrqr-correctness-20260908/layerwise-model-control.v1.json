@@ -1,0 +1,122 @@
+{
+  "schema": "drrqr-layerwise-model-control-comparison/v1",
+  "status": "failed",
+  "criteria": {
+    "prompt_hashes_exact": true,
+    "token_ids_exact": true,
+    "selected_logprob_max_abs": 0.02,
+    "selected_logprob_mean_abs": 0.005
+  },
+  "input_sha256": {
+    "/drrqr-results/layerwise-model-control-v1/legacy64/service-manifest.json": "85abe625451f6261f430d8bb8b06c2ad2c6e9263cb5f8b0951289064d71a5498",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/service-exit.json": "c120d2b38ba7dd7b06ce49beca93efc7aacdcd75a4a041da6b38c7c602730c6c",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/service-process.json": "1ebfc56d8665f9683fd55423d8159e76661c0c8d628c47c8002b3caa9198e083",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/worker-probe/rank0.load.json": "119851b158f5d1c7ea92f0722e3ab3f69d84c24202a26c9fefad93640b9cb887",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/worker-probe/rank0.cache.json": "5922d8c61c4d149a9441573836f9d4c0731497ec24117056e04a1e6962ee4c23",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/worker-probe/rank1.load.json": "227cb69512405a06b1cef2247bfde57b2df6b0e04e9af8a8fd5389de2736f320",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/worker-probe/rank1.cache.json": "7d4522695212bdd1e6cd75796d4f8fb56e98c6816ccef2d5694cdb86a06efdeb",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/worker-probe/rank2.load.json": "21edcc46027ec487efd5a143958c58e2dd4c48eeb0a8d4caefab056654973a13",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/worker-probe/rank2.cache.json": "b7d88db05a9c2b09bee71ffe3ea4ed8d3d5145852937549b41ed43e23cc5cc53",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/worker-probe/rank3.load.json": "8bbb77683b7083dea7fd32cde022c10d1789a06fff46b6101307892350e1413f",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/worker-probe/rank3.cache.json": "7927b7ed5ec4c97dad08aa09f2849ed2de32a21cdc7706e927251c9e2af3a4af",
+    "/drrqr-results/layerwise-model-control-v1/legacy64/integration-sequence.json": "3a2df055416e1fc88ec6b187c476ccf1f154af5ed2a666cd3fc93ed4b0003fbb",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/service-manifest.json": "3629df67475fa8750f8805e2a73987d734af7ae9a841a81dfa313220dea2d570",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/service-exit.json": "a97c4a66979bcb4676f9cbab447e26f1631280b026c9467553e3c05db721d52c",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/service-process.json": "cc0184c2d38ffdb129e0e4ac745fd247e1cc506cc9857659eb0c3abb3de278ff",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/worker-probe/rank0.load.json": "80076a62374737bf4e92ddb4ab07636b79b9e45266f17a70f1e07e35b7e29c02",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/worker-probe/rank0.cache.json": "941ec72b7fd8a9d8c81e8ad050cf7713e206bcf2ed781ba86611e86cfcb129b5",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/worker-probe/rank1.load.json": "e53ef0d1393d58510de1543626e59953575a5f3ecc7ce30b16e267276c9f44fc",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/worker-probe/rank1.cache.json": "776ca00134bb0eece47096b5d79efa21c6cb2dc316b8b146eec53dbc7bd157ad",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/worker-probe/rank2.load.json": "df033d733e0adde15ef2df537b3007737ec16f56dae15fe270c2dd39883c8942",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/worker-probe/rank2.cache.json": "f3b089931a2db8a23ddde109b24c6c1b481da48eb943148ff76e45cee6e35e87",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/worker-probe/rank3.load.json": "4b0a6cb21e6cff204df6425b2895d1ebd5cf84e2533617da611a370e19b38c18",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/worker-probe/rank3.cache.json": "6dd35b435d8577fa4f911ee039f0f270720ade3c6f4fc34b8382f4272c484f51",
+    "/drrqr-results/layerwise-model-control-v1/layerwise64/integration-sequence.json": "5e27292c1423599e5d0ead8ea980227b559f73bfe8632f9f4fcc667562ede52d",
+    "/drrqr-plans/prune50-energy-kernel-v1.json": "b1fcb727d3e58be66cc24148e30a5a1722d3bdc0914784f01cad02f11f741b8c",
+    "/cache/cch/drror_vllm_ascend/docs/experiments/qwen38-drrqr-correctness-20260908/layerwise-uniform64.v1.json": "761b976a996d0969bb3abb2387b860b24195adf2c20722fd1415a00cd3041d7f"
+  },
+  "failures": [
+    "selected_logprob_max_abs",
+    "selected_logprob_mean_abs"
+  ],
+  "created_epoch_s": 1788943506.100429,
+  "claim": "legacy64 versus layerwise-all64 model/control and representative trajectory qualification",
+  "limits": [
+    "No performance or task accuracy measurement.",
+    "Cache metadata/alias comparisons do not compare multi-step cache values.",
+    "Physical device mapping relies on the parent preflight."
+  ],
+  "ranks": [
+    {
+      "rank": 0,
+      "layers_compared": 48,
+      "parameters_compared": 336,
+      "cache_tensors_compared": 96,
+      "cache_alias_pattern_exact": true
+    },
+    {
+      "rank": 1,
+      "layers_compared": 48,
+      "parameters_compared": 336,
+      "cache_tensors_compared": 96,
+      "cache_alias_pattern_exact": true
+    },
+    {
+      "rank": 2,
+      "layers_compared": 48,
+      "parameters_compared": 336,
+      "cache_tensors_compared": 96,
+      "cache_alias_pattern_exact": true
+    },
+    {
+      "rank": 3,
+      "layers_compared": 48,
+      "parameters_compared": 336,
+      "cache_tensors_compared": 96,
+      "cache_alias_pattern_exact": true
+    }
+  ],
+  "requests": [
+    {
+      "index": 0,
+      "input_tokens": 32,
+      "prompt_hash_exact": true,
+      "token_ids_exact": true,
+      "logprobs_exact": false,
+      "logprob_max_abs": 0.06878197193145752,
+      "logprob_mean_abs": 0.01052058945282397
+    },
+    {
+      "index": 1,
+      "input_tokens": 3240,
+      "prompt_hash_exact": true,
+      "token_ids_exact": true,
+      "logprobs_exact": false,
+      "logprob_max_abs": 0.07280218601226807,
+      "logprob_mean_abs": 0.009836691080749915
+    },
+    {
+      "index": 2,
+      "input_tokens": 12830,
+      "prompt_hash_exact": true,
+      "token_ids_exact": true,
+      "logprobs_exact": false,
+      "logprob_max_abs": 0.05535095930099487,
+      "logprob_mean_abs": 0.0063373287875094775
+    },
+    {
+      "index": 3,
+      "input_tokens": 28835,
+      "prompt_hash_exact": true,
+      "token_ids_exact": true,
+      "logprobs_exact": false,
+      "logprob_max_abs": 0.03843235969543457,
+      "logprob_mean_abs": 0.0052904951399739275
+    }
+  ],
+  "selected_logprob_count": 128,
+  "selected_logprobs_exact": false,
+  "selected_logprob_max_abs": 0.07280218601226807,
+  "selected_logprob_mean_abs": 0.007996276115264322,
+  "comparator_sha256": "9bb27324c083a52e65df23309900227761efb0bd3b36f64e59f880119d735b26"
+}

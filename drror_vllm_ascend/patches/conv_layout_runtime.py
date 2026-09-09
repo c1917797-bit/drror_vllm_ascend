@@ -48,6 +48,12 @@ def prepare_model(model, gdn_cls, *, expected_dk, require_npu=True):
     """Validate every target before repacking, then prove exact parameter values."""
     import torch
 
+    if isinstance(expected_dk, dict):
+        if set(expected_dk) != LINEAR_LAYERS:
+            raise RuntimeError("conv layout: expected width map for all 48 layers")
+        if any(type(dk) is not int or dk not in (32, 64, 96, 112, 128)
+               for dk in expected_dk.values()):
+            raise RuntimeError("conv layout: invalid per-layer width")
     targets = []
     seen = set()
     for name, module in model.named_modules():
@@ -57,12 +63,13 @@ def prepare_model(model, gdn_cls, *, expected_dk, require_npu=True):
         if match is None:
             raise RuntimeError(f"conv layout: unrecognized GDN target {name}")
         layer = int(match[1])
+        dk = expected_dk[layer] if isinstance(expected_dk, dict) and layer in expected_dk else expected_dk
         weight = module.conv1d.weight
-        expected_shape = (2 * 4 * expected_dk + 12 * 128, 1, 4)
         if layer in seen or layer not in LINEAR_LAYERS:
             raise RuntimeError("conv layout: duplicate or unexpected layer")
+        expected_shape = (2 * 4 * dk + 12 * 128, 1, 4)
         if (module.tp_size != 4 or module.num_k_heads != 16 or module.num_v_heads != 48
-                or module.head_k_dim != expected_dk or module.head_v_dim != 128
+                or module.head_k_dim != dk or module.head_v_dim != 128
                 or tuple(weight.shape) != expected_shape or weight.dtype != torch.bfloat16):
             raise RuntimeError(f"conv layout: unexpected local shape at {name}")
         if require_npu and weight.device.type != "npu":
@@ -87,7 +94,8 @@ def prepare_model(model, gdn_cls, *, expected_dk, require_npu=True):
         actual = parameter.detach().cpu()
         if parameter is not module.conv1d.weight or not torch.equal(reference, actual):
             raise RuntimeError(f"conv layout: loaded values changed at {name}")
-        records.append({"name": name, "layer": layer, **result, "exact_values_verified": True})
+        records.append({"name": name, "layer": layer, "key_head_dim": module.head_k_dim,
+                        **result, "exact_values_verified": True})
     return records
 
 
@@ -118,6 +126,10 @@ def install_runner_patch(runner_cls, model_cls, gdn_cls, config, verify_worker):
         model = self.get_model()
         if not isinstance(model, model_cls):
             raise RuntimeError("conv layout: runner did not load the audited Qwen model")
+        from ..layerwise import LayerwiseDrrqrPlan
+        plan = getattr(model, "_drror_drrqr_plan", None)
+        if isinstance(plan, LayerwiseDrrqrPlan):
+            dk = dict(plan.layer_dims)
         records = prepare_model(model, gdn_cls, expected_dk=dk)
         self._drror_conv_layout_ready = True
         emit_evidence(

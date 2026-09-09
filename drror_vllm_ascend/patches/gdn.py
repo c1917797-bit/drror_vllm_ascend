@@ -138,6 +138,11 @@ def install_decode_observer(gdn_cls, gdn_module, config: DrrqrConfig) -> None:
             active.reset(token)
         state = self.kv_cache[1]
         qshape = observation.get("query_shape")
+        # A heterogeneous plan may retain early dense Dk128 layers.  Keep
+        # observing until the first reduced layer instead of treating that
+        # intentional dense layer as a contract violation.
+        if qshape and qshape[-1] == 128 and state.shape[-1] == 128:
+            return result
         if not qshape or qshape[-1] not in SUPPORTED_REDUCED_KEY_DIMS or state.shape[-1] != qshape[-1]:
             raise RuntimeError("DRRQR: completed decode did not expose expected reduced Q/K/state shapes")
         emit_evidence(

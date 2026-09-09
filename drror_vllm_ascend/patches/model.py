@@ -8,7 +8,9 @@ import logging
 
 from ..diagnostics import emit_evidence
 from ..envs import DrrqrConfig
-from ..plan import load_runtime_plan
+from ..layerwise import LayerwiseDrrqrPlan
+from ..runtime_plan import load_runtime_plan
+from .layerwise import install_layerwise_constructor_patch
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,7 @@ def install_model_patch(
     model_cls,
     config: DrrqrConfig,
     *,
+    attention_cls=None,
     prepare_runtime=None,
 ) -> None:
     current = model_cls.__init__
@@ -38,6 +41,11 @@ def install_model_patch(
     @functools.wraps(original_init)
     def initialize(self, *, vllm_config, prefix=""):
         plan = load_runtime_plan(config, vllm_config)
+        reference = plan.reference if isinstance(plan, LayerwiseDrrqrPlan) else plan
+        if isinstance(plan, LayerwiseDrrqrPlan) and attention_cls is None:
+            raise RuntimeError("DRRQR: layerwise serving requires the GDN constructor hook")
+        if attention_cls is not None:
+            install_layerwise_constructor_patch(attention_cls, plan, identity)
         if prepare_runtime is not None:
             prepare_runtime(plan)
         original_init(self, vllm_config=vllm_config, prefix=prefix)
@@ -47,14 +55,15 @@ def install_model_patch(
             "model_configured",
             component="model",
             plan_sha256=plan.digest,
-            old_head_k_dim=plan.old_head_k_dim,
+            old_head_k_dim=reference.old_head_k_dim,
             target_head_k_dim=plan.target_head_k_dim,
+            layer_head_k_dims=dict(plan.layer_dims) if isinstance(plan, LayerwiseDrrqrPlan) else None,
             linear_layer_count=len(plan.keep_indices),
         )
         logger.info(
             "DRRQR model configured: plan=%s Dk=%d->%d layers=%d",
             plan.digest,
-            plan.old_head_k_dim,
+            reference.old_head_k_dim,
             plan.target_head_k_dim,
             len(plan.keep_indices),
         )

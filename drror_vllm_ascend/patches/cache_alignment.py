@@ -8,7 +8,9 @@ from pathlib import Path
 
 from ..diagnostics import emit_evidence
 from ..envs import DrrqrConfig
-from ..plan import DrrqrPlan, file_sha256
+from ..layerwise import LayerwiseDrrqrPlan
+from ..plan import file_sha256
+from ..runtime_plan import load_bound_plan
 
 EXPECTED_ASCEND_MAMBA_CONFIG_SHA256 = (
     "ee38c68c27357a7d18f7e368e03a352bb312f79c3576431a64f688ce953716ac"
@@ -79,7 +81,7 @@ def install_hybrid_cache_alignment_patch(config: DrrqrConfig) -> None:
 
     if not config.enable:
         return
-    plan = DrrqrPlan.load(config.plan_path, config.plan_sha256)
+    plan = load_bound_plan(config)
 
     import vllm.model_executor.models.config as model_configs
     from vllm.model_executor.models import ModelRegistry
@@ -118,8 +120,7 @@ def install_hybrid_cache_alignment_patch(config: DrrqrConfig) -> None:
         model_config = vllm_config.model_config
         cache_config = vllm_config.cache_config
         parallel_config = vllm_config.parallel_config
-        plan.validate_source(model_config.model)
-        plan.validate_text_config(model_config.hf_text_config, reduced=True)
+        plan.validate_runtime(vllm_config)
         if (
             model_config.architecture != "Qwen3_5ForConditionalGeneration"
             or str(model_config.dtype) not in ("torch.bfloat16", "bfloat16")
@@ -182,6 +183,11 @@ def install_hybrid_cache_alignment_patch(config: DrrqrConfig) -> None:
             component="cache",
             plan_sha256=plan.digest,
             target_head_k_dim=plan.target_head_k_dim,
+            layer_head_k_dims=(
+                dict(plan.layer_dims)
+                if isinstance(plan, LayerwiseDrrqrPlan)
+                else None
+            ),
             alignment_mode="ceil-pad" if padded else "native-exact",
             source_path=source,
             source_sha256=EXPECTED_ASCEND_MAMBA_CONFIG_SHA256,
