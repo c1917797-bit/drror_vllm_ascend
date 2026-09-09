@@ -33,7 +33,7 @@ vLLM-Ascend 0.23.0 image. This adapter verifies the target GDN/model source
 hashes, observes the actual module-global prefill function, and independently
 records a completed decode branch. Calibration uses a fresh, eager token-ID
 capture with runtime-verified model and request provenance. The frozen v0.23
-AscendC decode state copy-out transfers float32 rows and requires 32-byte row
-alignment, so executable plans use Dk104, Dk88, and Dk64: exact reductions of
-18.75%, 31.25%, and 50%. Nominal Dk102/Dk89 plans are retained only as
-non-runnable paper-ratio evidence and fail closed before NPU execution.
+AscendC decode kernel pads its local state rows to a multiple of 16 Dk values,
+but CopyOutState assumes compact rows. Executable plans therefore use Dk112,
+Dk96, and Dk64: exact reductions of 12.5%, 25%, and 50%. Dk104, Dk88, and
+other non-16-aligned plans fail closed before NPU execution.

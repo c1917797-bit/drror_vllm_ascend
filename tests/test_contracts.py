@@ -36,7 +36,7 @@ from drror_vllm_ascend.plan import (
 
 class EnvironmentTests(unittest.TestCase):
     def test_runtime_version_matches_release(self):
-        self.assertEqual(plugin.__version__, "0.1.4")
+        self.assertEqual(plugin.__version__, "0.1.11")
 
     def test_disabled_is_inert_and_capture_requires_hashes(self):
         with mock.patch.dict(os.environ, {}, clear=True):
@@ -334,11 +334,12 @@ class V023PrefillTests(unittest.TestCase):
         # The real v0.23 module has no fused method. Do not add one to this fake.
         return types.SimpleNamespace(chunk_gated_delta_rule=chunk), calls
 
-    def test_direct_v023_prefill_preserves_three_aligned_ratios_and_multisequence_metadata(self):
-        for dk in (104, 88, 64):
+    def test_direct_v023_prefill_preserves_three_kernel_safe_ratios_and_multisequence_metadata(self):
+        for dk in (112, 96, 64, 32):
             with self.subTest(dk=dk), tempfile.TemporaryDirectory(prefix="drror-v023-") as directory:
                 evidence = Path(directory) / "evidence.jsonl"
                 module, calls = self.module()
+                original = module.chunk_gated_delta_rule
                 config = DrrqrConfig(enable=True, plan_path="/plan", plan_sha256="a" * 64, evidence_file=str(evidence))
                 gdn.install_prefill_patch(module, config)
                 installed = module.chunk_gated_delta_rule
@@ -368,6 +369,7 @@ class V023PrefillTests(unittest.TestCase):
                 self.assertIs(calls[0]["cu_seqlens"], starts)
                 self.assertIs(calls[0]["initial_state"], state)
                 self.assertIsNone(calls[0]["scale"])
+                self.assertIs(module.chunk_gated_delta_rule, original)
                 rows = [json.loads(line) for line in evidence.read_text().splitlines()]
                 self.assertEqual(len(rows), 1)
                 self.assertEqual(rows[0]["sequence_count"], 2)
@@ -398,9 +400,9 @@ class V023PrefillTests(unittest.TestCase):
     def test_missing_metadata_or_wrong_state_fails_before_kernel(self):
         module, calls = self.module()
         gdn.install_prefill_patch(module, DrrqrConfig(enable=True))
-        q = torch.zeros(1, 2, 4, 88)
+        q = torch.zeros(1, 2, 4, 96)
         v = torch.zeros(1, 2, 12, 128)
-        for state, meta in ((torch.zeros(1, 12, 88, 128), None), (torch.zeros(1, 12, 128, 88), object())):
+        for state, meta in ((torch.zeros(1, 12, 96, 128), None), (torch.zeros(1, 12, 128, 96), object())):
             with self.assertRaisesRegex(RuntimeError, "original state layout"):
                 module.chunk_gated_delta_rule(
                     q,
@@ -418,7 +420,7 @@ class V023PrefillTests(unittest.TestCase):
 
 class V023DecodeTests(unittest.TestCase):
     def test_decode_observer_preserves_core_and_records_actual_shapes(self):
-        for dk in (64, 88, 104):
+        for dk in (32, 64, 96, 112):
             with self.subTest(dk=dk), tempfile.TemporaryDirectory(prefix="drror-decode-") as directory:
                 evidence = Path(directory) / "evidence.jsonl"
                 metadata = types.SimpleNamespace(num_decodes=2, num_decode_tokens=2, spec_sequence_masks=None)
@@ -451,6 +453,7 @@ class V023DecodeTests(unittest.TestCase):
 
                 config = DrrqrConfig(enable=True, evidence_file=str(evidence))
                 original_core = Gdn._forward_core
+                original_rearrange = Gdn.rearrange_mixed_qkv
                 gdn.install_decode_observer(Gdn, module, config)
                 installed = Gdn._forward_core
                 gdn.install_decode_observer(Gdn, module, config)
@@ -461,6 +464,8 @@ class V023DecodeTests(unittest.TestCase):
                     self.assertIs(Gdn()._forward_core(packed, None, None, output), output)
                 self.assertEqual(len(calls), 2)
                 self.assertIs(calls[0][0], packed)
+                self.assertIs(Gdn._forward_core, original_core)
+                self.assertIs(Gdn.rearrange_mixed_qkv, original_rearrange)
                 row = json.loads(evidence.read_text().strip())
                 self.assertEqual(row["event"], "reduced_gdn_decode_branch")
                 self.assertEqual(row["query_shape"], [1, 2, 4, dk])
@@ -513,9 +518,62 @@ class SelectionTests(unittest.TestCase):
                 selection,
                 "strong_rrqr_indices",
                 return_value=(np.array([0, 2]), rrqr_evidence),
-            ):
-                keeps, _ = selection.load_keep_maps(root, **arguments)
+            ) as rrqr:
+                keeps, selection_evidence = selection.load_keep_maps(root, **arguments)
             self.assertEqual(keeps[0].tolist(), [0, 2, 4, 6])
+            self.assertEqual(selection_evidence["selection_objective"], "official-raw")
+            with mock.patch.object(
+                selection,
+                "strong_rrqr_indices",
+                return_value=(np.array([0, 2]), rrqr_evidence),
+            ) as normalized_rrqr:
+                normalized_keeps, normalized_evidence = selection.load_keep_maps(
+                    root,
+                    selection_objective="cosine-kernel",
+                    **arguments,
+                )
+            self.assertEqual(normalized_keeps[0].tolist(), [0, 2, 4, 6])
+            self.assertEqual(
+                normalized_evidence["selection_objective"],
+                "cosine-kernel",
+            )
+            for call in normalized_rrqr.call_args_list:
+                norms = call.args[0].float().norm(dim=-1)
+                self.assertTrue(
+                    torch.allclose(norms, torch.ones_like(norms), atol=1e-5)
+                )
+            with mock.patch.object(selection, "strong_rrqr_indices") as energy_rrqr:
+                energy_keeps, energy_evidence = selection.load_keep_maps(
+                    root,
+                    selection_objective="energy-kernel",
+                    **arguments,
+                )
+            expected_energy_keeps = []
+            for head in range(2):
+                q_head = torch.nn.functional.normalize(
+                    payload["q"].view(-1, 2, 4)[:, head, :].float(),
+                    p=2.0,
+                    dim=-1,
+                    eps=1e-6,
+                )
+                k_head = torch.nn.functional.normalize(
+                    payload["k"].view(-1, 2, 4)[:, head, :].float(),
+                    p=2.0,
+                    dim=-1,
+                    eps=1e-6,
+                )
+                energy = (
+                    q_head.square().sum(dim=0)
+                    + k_head.square().sum(dim=0)
+                ).numpy()
+                selected = np.lexsort((np.arange(4), -energy))[:2]
+                expected_energy_keeps.extend((np.sort(selected) + head * 4).tolist())
+            self.assertEqual(energy_keeps[0].tolist(), expected_energy_keeps)
+            self.assertEqual(
+                energy_evidence["selection_objective"],
+                "energy-kernel",
+            )
+            energy_rrqr.assert_not_called()
             with mock.patch.object(
                 selection,
                 "strong_rrqr_indices",
@@ -633,8 +691,8 @@ class PrepareTests(unittest.TestCase):
             [102, 89, 64],
         )
         self.assertEqual(
-            [prepare._target_dim(128, ratio) for ratio in (0.1875, 0.3125, 0.5)],
-            [104, 88, 64],
+            [prepare._target_dim(128, ratio) for ratio in (0.125, 0.25, 0.5)],
+            [112, 96, 64],
         )
 
     def test_official_qwen38_revision_hashes_are_pinned(self):
@@ -859,11 +917,11 @@ class ModelPatchTests(unittest.TestCase):
 
 
 class CacheAlignmentTests(unittest.TestCase):
-    def test_v023_decode_copyout_requires_float32_rows_aligned_to_32_bytes(self):
-        for dk in (64, 88, 104):
+    def test_v023_decode_copyout_requires_key_dimension_aligned_to_16(self):
+        for dk in (64, 96, 112):
             validate_ascend_decode_alignment(dk)
-        for dk in (89, 102):
-            with self.assertRaisesRegex(ValueError, "multiple of 8"):
+        for dk in (88, 89, 102, 104):
+            with self.assertRaisesRegex(ValueError, "multiple of 16"):
                 validate_ascend_decode_alignment(dk)
 
     def test_reduced_dk102_uses_128_token_ceil_padding(self):
@@ -917,8 +975,8 @@ class ActivationAuditTests(unittest.TestCase):
                     "component": "cache",
                     "pid": 99,
                     "plan_sha256": digest,
-                    "target_head_k_dim": 102,
-                    "alignment_mode": "ceil-pad",
+                    "target_head_k_dim": 96,
+                    "alignment_mode": "native-exact",
                     "source_sha256": cache_alignment.EXPECTED_ASCEND_MAMBA_CONFIG_SHA256,
                 },
             ]
@@ -943,7 +1001,7 @@ class ActivationAuditTests(unittest.TestCase):
                             "pid": pid,
                             "plan_sha256": digest,
                             "old_head_k_dim": 128,
-                            "target_head_k_dim": 102,
+                            "target_head_k_dim": 96,
                             "linear_layer_count": 48,
                         },
                         {
@@ -960,13 +1018,13 @@ class ActivationAuditTests(unittest.TestCase):
                             "component": "gdn",
                             "pid": pid,
                             "plan_sha256": digest,
-                            "key_head_dim": 102,
+                            "key_head_dim": 96,
                             "value_head_dim": 128,
                             "backend": "chunk_gated_delta_rule",
                             "token_count": 3,
-                            "query_shape": [1, 3, 4, 102],
-                            "key_shape": [1, 3, 4, 102],
-                            "initial_state_shape": [1, 12, 102, 128],
+                            "query_shape": [1, 3, 4, 96],
+                            "key_shape": [1, 3, 4, 96],
+                            "initial_state_shape": [1, 12, 96, 128],
                             "prebuilt_metadata_forwarded": True,
                             "completed_python_call": True,
                         },
@@ -976,13 +1034,13 @@ class ActivationAuditTests(unittest.TestCase):
                             "component": "gdn",
                             "pid": pid,
                             "plan_sha256": digest,
-                            "key_head_dim": 102,
+                            "key_head_dim": 96,
                             "value_head_dim": 128,
                             "backend": "npu_recurrent_gated_delta_rule",
                             "token_count": 1,
-                            "query_shape": [1, 1, 4, 102],
-                            "key_shape": [1, 1, 4, 102],
-                            "state_shape": [8, 12, 128, 102],
+                            "query_shape": [1, 1, 4, 96],
+                            "key_shape": [1, 1, 4, 96],
+                            "state_shape": [8, 12, 128, 96],
                             "completed_python_call": True,
                         },
                     ]
@@ -994,7 +1052,7 @@ class ActivationAuditTests(unittest.TestCase):
             result = audit.audit_activation(
                 path,
                 plan_sha256=digest,
-                target_head_k_dim=102,
+                target_head_k_dim=96,
             )
             self.assertTrue(result["ok"], result)
             for missing in ("worker_dispatch_verified", "reduced_gdn_hot_path", "reduced_gdn_decode_branch"):
@@ -1005,7 +1063,7 @@ class ActivationAuditTests(unittest.TestCase):
                         ),
                         encoding="utf-8",
                     )
-                    failed = audit.audit_activation(path, plan_sha256=digest, target_head_k_dim=102)
+                    failed = audit.audit_activation(path, plan_sha256=digest, target_head_k_dim=96)
                     self.assertFalse(failed["ok"])
                     self.assertTrue(any("worker 4" in error for error in failed["errors"]))
             dispatch = next(
@@ -1015,7 +1073,7 @@ class ActivationAuditTests(unittest.TestCase):
             )
             dispatch["runtime_sources"]["ascend_gdn"]["sha256"] = "0" * 64
             path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
-            failed = audit.audit_activation(path, plan_sha256=digest, target_head_k_dim=102)
+            failed = audit.audit_activation(path, plan_sha256=digest, target_head_k_dim=96)
             self.assertFalse(failed["ok"])
             self.assertTrue(any("source hashes" in error for error in failed["errors"]))
 

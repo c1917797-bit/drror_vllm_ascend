@@ -106,6 +106,36 @@ def apply_patches(config: DrrqrConfig) -> None:
             runtime_sources=runtime_sources,
         )
 
+    if config.prefill_mc2:
+        from vllm_ascend.ops.linear import AscendRowParallelLinear
+        from .prefill_mc2 import install_runtime_patch
+
+        install_runtime_patch(
+            NPUModelRunner, AscendRowParallelLinear, Qwen3_5ForConditionalGeneration,
+            config, verify_worker,
+        )
+        if not config.enable and not config.conv_layout:
+            emit_evidence(config, "runtime_patches_installed", component="plugin",
+                          mode="performance", optimization="prefill-matmul-allreduce-v1",
+                          vllm_version=_version("vllm"), vllm_ascend_version=_version("vllm-ascend"))
+            return
+
+    if config.conv_layout:
+        from .conv_layout_runtime import install_runner_patch
+
+        install_runner_patch(
+            NPUModelRunner, Qwen3_5ForConditionalGeneration,
+            QwenGatedDeltaNetAttention, config, verify_worker,
+        )
+        if not config.enable:
+            emit_evidence(
+                config, "runtime_patches_installed", component="plugin",
+                mode="performance", optimization="conv-weight-tap-major-v1",
+                vllm_version=_version("vllm"),
+                vllm_ascend_version=_version("vllm-ascend"),
+            )
+            return
+
     if config.capture_enable:
         from .capture import install_capture_patch
         from .capture_binding import (

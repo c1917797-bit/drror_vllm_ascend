@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from . import selection
 from .calibration import read_calibration
 from .plan import (
     SCHEMA,
@@ -18,6 +19,7 @@ from .plan import (
     TARGET_MODEL_ID,
     TARGET_OUTER_MODEL_TYPE,
     TARGET_TEXT_MODEL_TYPE,
+    validate_ascend_decode_alignment,
     validate_official_checkpoint_hashes,
 )
 
@@ -37,6 +39,18 @@ SCOPE = (
     "rewritten. Capture and input hashes establish identity but do not by "
     "themselves establish quality, performance, or paper-exact reproduction."
 )
+
+
+def selection_method(selection_objective: str) -> tuple[str, bool]:
+    """Return an honest method label and whether the selector is paper-exact."""
+
+    if selection_objective == "official-raw":
+        return "DRRQR (paper-faithful Strong RRQR selector)", True
+    if selection_objective == "cosine-kernel":
+        return "Experimental kernel-normalized Strong RRQR selector", False
+    if selection_objective == "energy-kernel":
+        return "Experimental joint normalized Q/K energy top-k selector", False
+    raise ValueError(f"DRRQR: unknown selection objective {selection_objective!r}")
 
 
 def _safe_open(path: Path, **kwargs: Any) -> Any:
@@ -198,9 +212,8 @@ def prepare_plan(
     pruning_ratio: float,
     tp_size: int = 4,
     captures_per_rank: int = 16,
+    selection_objective: str = "official-raw",
 ) -> dict[str, Any]:
-    from . import selection
-
     source = source.resolve()
     capture_dir = capture_dir.resolve()
     calibration_jsonl = calibration_jsonl.resolve()
@@ -231,6 +244,7 @@ def prepare_plan(
     if not isinstance(text, dict):
         raise TypeError("DRRQR: Qwen3.8 text_config is missing")
     target_dim = _target_dim(_positive_int(text, "linear_key_head_dim"), pruning_ratio)
+    validate_ascend_decode_alignment(target_dim)
     text, linear_layers = validate_source(
         source,
         config,
@@ -256,6 +270,7 @@ def prepare_plan(
         source_config_sha256=config_sha,
         calibration_sha256=calibration_sha,
         calibration_input_hashes=[row["input_ids_sha256"] for row in calibration_rows],
+        selection_objective=selection_objective,
     )
     if set(keep_maps) != set(linear_layers):
         raise ValueError("DRRQR: selection layer coverage mismatch")
@@ -279,6 +294,7 @@ def prepare_plan(
     ):
         raise RuntimeError("DRRQR: immutable input changed during preparation")
 
+    method, paper_exact_selection = selection_method(selection_objective)
     plan = {
         "schema": SCHEMA,
         "target_model_id": TARGET_MODEL_ID,
@@ -286,6 +302,7 @@ def prepare_plan(
         "source_index_sha256": index_sha,
         "old_head_k_dim": text["linear_key_head_dim"],
         "target_head_k_dim": target_dim,
+        "selection_objective": selection_objective,
         "pruning_ratio": pruning_ratio,
         "num_key_heads": text["linear_num_key_heads"],
         "num_value_heads": text["linear_num_value_heads"],
@@ -296,7 +313,8 @@ def prepare_plan(
         "model_type": text["model_type"],
         "keep_indices": keep_indices,
         "provenance": {
-            "method": "DRRQR",
+            "method": method,
+            "paper_exact_selection": paper_exact_selection,
             "official_commit": selection.OFFICIAL_COMMIT,
             "official_rrqr_sha256": selection.OFFICIAL_RRQR_SHA256,
             "calibration_sha256": calibration_sha,
@@ -334,10 +352,19 @@ def main() -> None:
         "--pruning-ratio",
         type=float,
         required=True,
-        choices=(0.1875, 0.2, 0.3, 0.3125, 0.5),
+        choices=(0.125, 0.25, 0.5),
     )
     parser.add_argument("--tp-size", type=int, default=4)
     parser.add_argument("--captures-per-rank", type=int, default=16)
+    parser.add_argument(
+        "--selection-objective",
+        choices=selection.SELECTION_OBJECTIVES,
+        default="official-raw",
+        help=(
+            "Use paper-faithful raw activations or the experimental Qwen GDN "
+            "kernel-normalized geometry."
+        ),
+    )
     args = parser.parse_args()
     result = prepare_plan(**vars(args))
     print(json.dumps(result, indent=2, ensure_ascii=False))

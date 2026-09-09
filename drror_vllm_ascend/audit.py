@@ -140,7 +140,13 @@ def audit_activation(
         and record.get("target_head_k_dim") == target_head_k_dim
         and record.get("source_sha256") == EXPECTED_ASCEND_MAMBA_CONFIG_SHA256
     ]
-    expected_alignment = "native-exact" if target_head_k_dim == 64 else "ceil-pad"
+    # Under the pinned Qwen3.8 BF16 TP4 contract the SSM page is an exact
+    # multiple of the Ascend 128-token attention page quantum whenever Dk is
+    # divisible by 32.  Dk96 is therefore native-exact just like Dk64; Dk112
+    # exercises the audited ceil-padding continuation.
+    expected_alignment = (
+        "native-exact" if target_head_k_dim % 32 == 0 else "ceil-pad"
+    )
     if not any(record.get("alignment_mode") == expected_alignment for record in cache_events):
         errors.append(
             "missing audited hybrid-cache alignment event "

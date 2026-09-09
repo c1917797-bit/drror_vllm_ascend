@@ -1,0 +1,12 @@
+{
+  "schema": "paper-to-ascend-incident/v1",
+  "experiment_id": "qwen38-drrqr-correctness-20260908",
+  "run": "gdn-parity-v1",
+  "classification": "harness_initialization_failure",
+  "scope": "prefill only",
+  "symptom": "All prefill cases, including the Dk128 control, failed before kernel execution.",
+  "error": "Device properties not initialized. Please call init_device_properties_triton() first.",
+  "decode_evidence_preserved": true,
+  "corrective_action": "Initialize vLLM-Ascend Triton device properties after selecting container NPU0, then rerun the complete frozen matrix as gdn-parity-v2.",
+  "claim_boundary": "The v1 prefill failures contain no evidence about Dk-specific numerical correctness."
+}

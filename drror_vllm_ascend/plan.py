@@ -26,8 +26,7 @@ WEIGHT_NAME = re.compile(
     r"(in_proj_qkv|conv1d)\.weight$"
 )
 HASH = re.compile(r"^[0-9a-f]{64}$")
-ASCEND_DECODE_STATE_ELEMENT_BYTES = 4
-ASCEND_MTE_ROW_ALIGNMENT_BYTES = 32
+ASCEND_DECODE_KEY_ALIGNMENT = 16
 
 
 def file_sha256(path: Path) -> str:
@@ -61,12 +60,12 @@ def validate_official_checkpoint_hashes(
 def validate_ascend_decode_alignment(target_head_k_dim: int) -> None:
     """Reject Dk values the frozen v0.23 AscendC decode kernel cannot copy out."""
 
-    row_bytes = target_head_k_dim * ASCEND_DECODE_STATE_ELEMENT_BYTES
-    if row_bytes % ASCEND_MTE_ROW_ALIGNMENT_BYTES:
+    if target_head_k_dim % ASCEND_DECODE_KEY_ALIGNMENT:
         raise ValueError(
             "DRRQR: target Dk is unsafe for the v0.23 AscendC decode state "
-            f"copy-out ({row_bytes} bytes is not "
-            f"{ASCEND_MTE_ROW_ALIGNMENT_BYTES}-byte aligned); use a multiple of 8"
+            "copy-out because its local state row is padded to a multiple of "
+            f"{ASCEND_DECODE_KEY_ALIGNMENT} while CopyOutState assumes compact "
+            f"rows; use a multiple of {ASCEND_DECODE_KEY_ALIGNMENT}"
         )
 
 

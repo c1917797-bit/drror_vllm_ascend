@@ -71,7 +71,8 @@ def install_hybrid_cache_alignment_patch(config: DrrqrConfig) -> None:
     The native Ascend function already rounds the attention block size up to a
     128-token boundary and documents padding the Mamba page when it is larger.
     It nevertheless asserts that the rounded K page exactly equals the SSM
-    state. Reduced Dk values 102 and 89 exercise the documented padding case.
+    state. Of the supported aligned candidates, Dk112 exercises the documented
+    padding case, while Dk96 and Dk64 are natively exact.
     This wrapper only continues that exact assertion for the pinned model and
     serving contract; all other errors and configurations still fail closed.
     """

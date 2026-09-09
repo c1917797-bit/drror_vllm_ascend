@@ -1,0 +1,105 @@
+{
+  "schema": "drrqr-prefill-mc2-pair-analysis/v1",
+  "status": "single_pair_complete",
+  "artifact_sha256": {
+    "dk64-on": {
+      "service-manifest.json": "5f7b698cef9bd87145ad1f421baae2baf8825d6ca77deeb9957307dd86a8dde7",
+      "activation-smoke.json": "8866d0cd52b63b39eadbec64f0ce462e91bde1ced0acb07d1696c0df81e280e4",
+      "evidence.jsonl": "5680f95312baa7670037b2fe005288e9c86625ada5bf2902ad0af30ae531620f",
+      "performance-screen.json": "35c5b36747e531e9074134aed052088d008673ca5caecffc78c142dc65f944a9",
+      "performance.run1.json": "bc2834ffb5848dced5416d82de260000f6962d101d395ad97fca15e415ce2c68"
+    },
+    "dk64-off": {
+      "service-manifest.json": "c7152526e28d96730920d6b4eb4f2bc6eb5b7a6d0618a31618fcd78f56a37565",
+      "activation-smoke.json": "bf001a6f6e3b3695fdbe02a5410d4ada26e6595372185e5cd0518225ca5f41fd",
+      "evidence.jsonl": "ac6b75a8b29aad531c6c59f2e68152d34722abace0f1b9cfa8ec61d600ad3c97",
+      "performance-screen.json": "18728705e1c92facb2e2d0def18429ba49b865506b1965e70cd8312b74ac7fc2",
+      "performance.run1.json": "0042f537c735244351872abf734adf21552b81b8aec378eabf4025466cd16b38"
+    }
+  },
+  "matched_manifest_fields": [
+    "variant",
+    "layout",
+    "plugin_version",
+    "command",
+    "profiler_config",
+    "installed_plugin",
+    "module_sha256",
+    "build_manifest_sha256",
+    "wheel_sha256",
+    "source_sha256",
+    "reference_manifest_sha256",
+    "plan_sha256",
+    "wrapper_sha256",
+    "physical_npu_contract",
+    "container_npu_namespace",
+    "diagnostic_determinism",
+    "inherited_runtime_environment"
+  ],
+  "matching_flags_except_treatment_and_evidence_path": true,
+  "matching_benchmark_config": {
+    "base_url": "http://127.0.0.1:6666",
+    "concurrency": 16,
+    "ignore_eos": true,
+    "input_tokens": 32768,
+    "model": "qwen3.8",
+    "output_tokens": 1024,
+    "prefix_tokens": 16384,
+    "requests": 40,
+    "segment_boundary_transport": "vllm_xargs.hypic_segment_ends",
+    "segment_ends": [
+      16384,
+      32768
+    ],
+    "warmup_mode": "concurrent_materialization_gate",
+    "warmup_requests": 2
+  },
+  "smoke_three_output_hashes_match": true,
+  "summary": {
+    "output_tokens_per_second": {
+      "off": 134.60690975254067,
+      "on": 134.51470215881878,
+      "change_percent": -0.06850138220348967
+    },
+    "ttft_mean_ms": {
+      "off": 36648.522518761456,
+      "on": 36500.97018300439,
+      "change_percent": -0.40261469116941173
+    },
+    "tpot_mean_ms": {
+      "off": 68.87496233626337,
+      "on": 69.12227408406379,
+      "change_percent": 0.3590735143969903
+    },
+    "benchmark_duration_s": {
+      "off": 304.29344285000116,
+      "on": 304.5020309500396,
+      "change_percent": 0.06854833876301925
+    }
+  },
+  "exact_output_tokens_per_side": 40960,
+  "requests_per_side": 40,
+  "activation": {
+    "on": {
+      "worker_pids": [
+        42746,
+        42747,
+        42748,
+        42749
+      ],
+      "prepared": 4,
+      "fused_calls": 512
+    },
+    "off": {
+      "worker_pids": [
+        46500,
+        46501,
+        46502,
+        46503
+      ],
+      "prepared": 0,
+      "fused_calls": 0
+    }
+  },
+  "claim": "paired screening only; no repeatability, quality parity, or unpruned-baseline gain demonstrated"
+}

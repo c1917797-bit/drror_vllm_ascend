@@ -16,6 +16,7 @@ from .plan import OFFICIAL_INDEX_SHA256
 LAYER_RE = re.compile(r"(?:^|\.)layers\.(\d+)(?:\.|$)")
 OFFICIAL_COMMIT = "919d8667d951c385e08510bc1267c2e7049a4f56"
 OFFICIAL_RRQR_SHA256 = "fa4bacf516011ba1c88f2e0e92957bbe4513cc1bb6634912fdb0d06ba7821a62"
+SELECTION_OBJECTIVES = ("official-raw", "cosine-kernel", "energy-kernel")
 
 
 def file_sha256(path: Path) -> str:
@@ -134,11 +135,17 @@ def load_keep_maps(
     source_config_sha256: str,
     calibration_sha256: str,
     calibration_input_hashes: list[str],
+    selection_objective: str = "official-raw",
 ) -> tuple[dict[int, torch.Tensor], dict]:
     """Validate bound captures and run Strong RRQR independently per head."""
 
     if len(calibration_input_hashes) != captures_per_rank:
         raise ValueError("DRRQR: calibration token hashes must cover every capture index")
+    if selection_objective not in SELECTION_OBJECTIVES:
+        raise ValueError(
+            "DRRQR: selection objective must be one of "
+            f"{SELECTION_OBJECTIVES}, got {selection_objective!r}"
+        )
 
     grouped: dict[tuple[int, int], list[dict]] = {}
     capture_files = sorted(capture_dir.glob("*.pt"))
@@ -210,7 +217,17 @@ def load_keep_maps(
     keep_maps: dict[int, torch.Tensor] = {}
     evidence = {
         "schema": "drrqr-selection/v1",
-        "method": "Strong RRQR on concatenated post-conv Q/K activations",
+        "method": (
+            "Strong RRQR on concatenated post-conv Q/K activations"
+            if selection_objective == "official-raw"
+            else (
+                "Strong RRQR on kernel-normalized post-conv Q/K activations"
+                if selection_objective == "cosine-kernel"
+                else "Top shared coordinates by joint normalized Q/K energy"
+            )
+        ),
+        "selection_objective": selection_objective,
+        "l2norm_eps": 1e-6 if selection_objective != "official-raw" else None,
         "official_commit": OFFICIAL_COMMIT,
         "official_rrqr_sha256": OFFICIAL_RRQR_SHA256,
         "f_param": 1.5,
@@ -241,22 +258,74 @@ def load_keep_maps(
                 local_heads,
                 old_dim,
             )
+            q_heads = q.view(-1, local_heads, old_dim)
+            k_heads = k.view(-1, local_heads, old_dim)
             rank_keep = []
             rank_rrqr = []
             for local_head in range(local_heads):
-                selected, rrqr = strong_rrqr_indices(
-                    combined[:, local_head, :],
-                    new_dim,
-                    seed=42,
-                    rng=shared_rng,
-                    return_evidence=True,
-                )
-                if not rrqr["converged"]:
-                    raise RuntimeError(
-                        "DRRQR: Strong RRQR condition was not reached "
-                        f"for layer={layer} rank={rank} local_head={local_head}: "
-                        f"{rrqr}"
+                head_activation = combined[:, local_head, :]
+                if selection_objective == "cosine-kernel":
+                    # Qwen GDN applies this same per-token, per-head
+                    # normalization before both prefill and decode delta-rule
+                    # kernels.  The experimental objective therefore selects
+                    # coordinates in the geometry consumed by the real kernel
+                    # instead of allowing high-norm raw rows to dominate QR.
+                    head_activation = torch.nn.functional.normalize(
+                        head_activation.float(),
+                        p=2.0,
+                        dim=-1,
+                        eps=1e-6,
                     )
+                if selection_objective == "energy-kernel":
+                    # Q and K must use one shared coordinate map.  Ranking the
+                    # summed normalized energy maximizes the aggregate Q/K
+                    # energy retained by any unweighted coordinate subset of
+                    # this size, without favoring high-norm calibration rows.
+                    q_head = torch.nn.functional.normalize(
+                        q_heads[:, local_head, :].float(),
+                        p=2.0,
+                        dim=-1,
+                        eps=1e-6,
+                    )
+                    k_head = torch.nn.functional.normalize(
+                        k_heads[:, local_head, :].float(),
+                        p=2.0,
+                        dim=-1,
+                        eps=1e-6,
+                    )
+                    energy = (
+                        q_head.square().sum(dim=0)
+                        + k_head.square().sum(dim=0)
+                    )
+                    energy_np = energy.cpu().numpy()
+                    selected = np.lexsort(
+                        (np.arange(old_dim, dtype=np.int64), -energy_np)
+                    )[:new_dim]
+                    rrqr = {
+                        "method": "joint_normalized_qk_energy",
+                        "source_rows": int(q_head.shape[0] + k_head.shape[0]),
+                        "selected_rows": int(q_head.shape[0] + k_head.shape[0]),
+                        "subsampled": False,
+                        "converged": True,
+                        "termination": "closed_form_topk",
+                        "retained_energy_fraction": float(
+                            energy_np[selected].sum() / energy_np.sum()
+                        ),
+                    }
+                else:
+                    selected, rrqr = strong_rrqr_indices(
+                        head_activation,
+                        new_dim,
+                        seed=42,
+                        rng=shared_rng,
+                        return_evidence=True,
+                    )
+                    if not rrqr["converged"]:
+                        raise RuntimeError(
+                            "DRRQR: Strong RRQR condition was not reached "
+                            f"for layer={layer} rank={rank} local_head={local_head}: "
+                            f"{rrqr}"
+                        )
                 selected = np.sort(selected)
                 global_head = rank * local_heads + local_head
                 values = (selected + global_head * old_dim).tolist()

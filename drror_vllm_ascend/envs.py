@@ -52,12 +52,18 @@ class DrrqrConfig:
     source_config_sha256: str = ""
     calibration_sha256: str = ""
     calibration_jsonl: str = ""
+    conv_layout: bool = False
+    prefill_mc2: bool = False
+    prefill_mc2_mixed: bool = False
 
 
 def get_config() -> DrrqrConfig:
     config = DrrqrConfig(
         enable=_bool_env("VLLM_ASCEND_DRRQR_ENABLE", False),
         capture_enable=_bool_env("VLLM_ASCEND_DRRQR_CAPTURE_ENABLE", False),
+        conv_layout=_bool_env("VLLM_ASCEND_DRRQR_CONV_LAYOUT", False),
+        prefill_mc2=_bool_env("VLLM_ASCEND_DRRQR_PREFILL_MC2", False),
+        prefill_mc2_mixed=_bool_env("VLLM_ASCEND_DRRQR_PREFILL_MC2_MIXED", False),
         strict=_bool_env("VLLM_ASCEND_DRRQR_STRICT", True),
         require_runtime_hooks=_bool_env(
             "VLLM_ASCEND_DRRQR_REQUIRE_RUNTIME_HOOKS",
@@ -73,12 +79,24 @@ def get_config() -> DrrqrConfig:
         calibration_sha256=os.getenv("VLLM_ASCEND_DRRQR_CALIBRATION_SHA256", "").strip(),
         calibration_jsonl=os.getenv("VLLM_ASCEND_DRRQR_CALIBRATION_JSONL", "").strip(),
     )
+    if config.prefill_mc2_mixed and not config.prefill_mc2:
+        raise ValueError("mixed-batch MC2 requires VLLM_ASCEND_DRRQR_PREFILL_MC2")
     if config.enable and config.capture_enable:
         raise ValueError("DRRQR treatment and capture modes are mutually exclusive")
-    if not config.enable and not config.capture_enable:
+    if config.conv_layout and config.capture_enable:
+        raise ValueError("DRRQR conv-layout optimization and calibration capture are mutually exclusive")
+    if config.prefill_mc2 and config.capture_enable:
+        raise ValueError("DRRQR prefill MC2 optimization and calibration capture are mutually exclusive")
+    if not config.enable and not config.capture_enable and not config.conv_layout and not config.prefill_mc2:
         return config
     if config.evidence_file and not Path(config.evidence_file).is_absolute():
         raise ValueError("VLLM_ASCEND_DRRQR_EVIDENCE_FILE must be absolute")
+    if config.conv_layout and not config.evidence_file:
+        raise ValueError("conv-layout optimization requires VLLM_ASCEND_DRRQR_EVIDENCE_FILE")
+    if config.prefill_mc2 and not config.evidence_file:
+        raise ValueError("prefill MC2 optimization requires VLLM_ASCEND_DRRQR_EVIDENCE_FILE")
+    if not config.enable and not config.capture_enable:
+        return config
     if config.capture_enable:
         if not config.capture_dir or not Path(config.capture_dir).is_absolute():
             raise ValueError("VLLM_ASCEND_DRRQR_CAPTURE_DIR must be absolute")

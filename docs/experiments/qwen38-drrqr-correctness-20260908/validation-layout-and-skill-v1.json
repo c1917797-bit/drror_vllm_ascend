@@ -1,0 +1,89 @@
+{
+  "schema": "drrqr-skill-and-layout-validation/v1",
+  "profiler_boundary": {
+    "test": "actual WorkerProfiler before-model boundary",
+    "recorded_executions": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30
+    ],
+    "reset_passed": true,
+    "source_sha256": "31f8a33afd23e67a2ade5a95d0d837a03b0a9164d5b18acf561d948c9ae6c06c"
+  },
+  "conv_layout_validation": [
+    {
+      "status": "parity_pass",
+      "cases": 64,
+      "prefill_cases": 48,
+      "decode_steps": 512,
+      "sha256": "20b8dbc32e5d9875f120357f8faaa7a2bac60723123dd3b42e383ef2f1fd6600"
+    },
+    {
+      "variant": "original",
+      "columns": 47,
+      "rows": 60,
+      "counts": {
+        "Transpose": 30,
+        "CausalConv1d": 30
+      },
+      "sum_us": {
+        "Transpose": 376.15999999999997,
+        "CausalConv1d": 470.26
+      },
+      "sha256": "32df5e62a24a717479ffcc9b2a632ff62fc194735938be76fb8ae776c8b9becd"
+    },
+    {
+      "variant": "packed",
+      "columns": 47,
+      "rows": 30,
+      "counts": {
+        "CausalConv1d": 30
+      },
+      "sum_us": {
+        "CausalConv1d": 329.90000000000003
+      },
+      "sha256": "5329baa5f8c45f5bc65fe8815a6a7a5092ed38630c28967473e324c9e05ca7d6"
+    }
+  ],
+  "paired_profile_validation": {
+    "status": "diagnostic_pair_validated",
+    "records": [
+      {
+        "phase": "prefill",
+        "diagnostic_envelope_reduction_percent": 3.376711902234808
+      },
+      {
+        "phase": "decode",
+        "diagnostic_envelope_reduction_percent": 2.42839123519204
+      }
+    ]
+  },
+  "scope": "Diagnostic and local equivalence evidence only; final joint acceptance remains incomplete"
+}

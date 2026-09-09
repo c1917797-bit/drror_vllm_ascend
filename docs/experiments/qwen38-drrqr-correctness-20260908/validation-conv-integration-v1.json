@@ -1,0 +1,39 @@
+{
+  "schema": "drrqr-conv-layout-validation/v1",
+  "date": "2026-09-08",
+  "status": "cpu_passed_model_equivalence_unproven",
+  "test_suite": {
+    "operation_id": "exec-0000000000000074",
+    "record": {
+      "args": [
+        "exec",
+        "-e",
+        "TORCH_DEVICE_BACKEND_AUTOLOAD=0",
+        "-w",
+        "/cache/cch/drror_vllm_ascend",
+        "drrqr_qwen38_energy_preflight_20260908",
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cancelled": false,
+      "command": "docker",
+      "cwd": null,
+      "durationMs": 3794,
+      "error": null,
+      "exitCode": 0,
+      "id": "exec-0000000000000074",
+      "lane": "job",
+      "state": "completed",
+      "stderr": "test_tp4_complete_evidence_passes_and_missing_hot_path_fails (test_contracts.ActivationAuditTests.test_tp4_complete_evidence_passes_and_missing_hot_path_fails) ... ok\ntest_dk64_is_natively_exact (test_contracts.CacheAlignmentTests.test_dk64_is_natively_exact) ... ok\ntest_reduced_dk102_uses_128_token_ceil_padding (test_contracts.CacheAlignmentTests.test_reduced_dk102_uses_128_token_ceil_padding) ... ok\ntest_v023_decode_copyout_requires_key_dimension_aligned_to_16 (test_contracts.CacheAlignmentTests.test_v023_decode_copyout_requires_key_dimension_aligned_to_16) ... ok\ntest_calibration_file_and_actual_tokens_are_bound (test_contracts.CaptureBindingTests.test_calibration_file_and_actual_tokens_are_bound) ... ok\ntest_capture_binding_checks_actual_disk_and_runtime_metadata (test_contracts.CaptureBindingTests.test_capture_binding_checks_actual_disk_and_runtime_metadata) ... ok\ntest_model_forward_fails_without_runner_binding (test_contracts.CaptureBindingTests.test_model_forward_fails_without_runner_binding) ... ok\ntest_model_forward_request_context_is_reset_after_failure (test_contracts.CaptureBindingTests.test_model_forward_request_context_is_reset_after_failure) ... ok\ntest_bounded_post_conv_capture_with_provenance (test_contracts.CapturePatchTests.test_bounded_post_conv_capture_with_provenance) ... ok\ntest_capture_requires_actual_model_and_request_binding (test_contracts.CapturePatchTests.test_capture_requires_actual_model_and_request_binding) ... ok\ntest_mixed_decode_capture_fails_closed (test_contracts.CapturePatchTests.test_mixed_decode_capture_fails_closed) ... ok\ntest_capture_and_treatment_are_mutually_exclusive (test_contracts.EnvironmentTests.test_capture_and_treatment_are_mutually_exclusive) ... ok\ntest_disabled_is_inert_and_capture_requires_hashes (test_contracts.EnvironmentTests.test_disabled_is_inert_and_capture_requires_hashes) ... ok\ntest_runtime_version_matches_release (test_contracts.EnvironmentTests.test_runtime_version_matches_release) ... ok\ntest_loader_that_does_not_consume_weights_fails_closed (test_contracts.ModelPatchTests.test_loader_that_does_not_consume_weights_fails_closed) ... ok\ntest_model_constructor_binds_plan_and_loader_consumes_transform (test_contracts.ModelPatchTests.test_model_constructor_binds_plan_and_loader_consumes_transform) ... ok\ntest_exact_qwen38_hybrid_metadata_is_accepted (test_contracts.PrepareTests.test_exact_qwen38_hybrid_metadata_is_accepted) ... ok\ntest_official_qwen38_revision_hashes_are_pinned (test_contracts.PrepareTests.test_official_qwen38_revision_hashes_are_pinned) ... ok\ntest_three_ratios_follow_official_floor_rule (test_contracts.PrepareTests.test_three_ratios_follow_official_floor_rule) ... ok\ntest_nonfinite_activation_is_rejected (test_contracts.SelectionTests.test_nonfinite_activation_is_rejected) ... ok\ntest_strong_rrqr_evidence_reports_convergence_state (test_contracts.SelectionTests.test_strong_rrqr_evidence_reports_convergence_state) ... ok\ntest_strong_rrqr_is_deterministic_and_bounded (test_contracts.SelectionTests.test_strong_rrqr_is_deterministic_and_bounded) ... ok\ntest_strong_rrqr_shared_rng_matches_official_legacy_sampling (test_contracts.SelectionTests.test_strong_rrqr_shared_rng_matches_official_legacy_sampling) ... ok\ntest_v2_capture_requires_matching_model_index_and_actual_token_row (test_contracts.SelectionTests.test_v2_capture_requires_matching_model_index_and_actual_token_row) ... ok\ntest_decode_observer_preserves_core_and_records_actual_shapes (test_contracts.V023DecodeTests.test_decode_observer_preserves_core_and_records_actual_shapes) ... ok\ntest_direct_v023_prefill_preserves_three_kernel_safe_ratios_and_multisequence_metadata (test_contracts.V023PrefillTests.test_direct_v023_prefill_preserves_three_kernel_safe_ratios_and_multisequence_metadata) ... ok\ntest_failed_kernel_does_not_emit_success_evidence (test_contracts.V023PrefillTests.test_failed_kernel_does_not_emit_success_evidence) ... ok\ntest_missing_metadata_or_wrong_state_fails_before_kernel (test_contracts.V023PrefillTests.test_missing_metadata_or_wrong_state_fails_before_kernel) ... ok\ntest_inner_loader_names_fail_closed (test_contracts.WeightTransformTests.test_inner_loader_names_fail_closed) ... ok\ntest_qk_and_conv_are_selected_while_v_is_preserved (test_contracts.WeightTransformTests.test_qk_and_conv_are_selected_while_v_is_preserved) ... ok\ntest_reject_training_and_unsupported_shape_dtype (test_conv_layout.ConvLayoutTests.test_reject_training_and_unsupported_shape_dtype) ... ok\ntest_values_identity_metadata_reload_and_idempotence (test_conv_layout.ConvLayoutTests.test_values_identity_metadata_reload_and_idempotence) ... ok\ntest_all_targets_exact_and_no_missing_target_mutation (test_conv_layout_runtime.ConvRuntimeTests.test_all_targets_exact_and_no_missing_target_mutation) ... ok\ntest_capture_conflict (test_conv_layout_runtime.ConvRuntimeTests.test_capture_conflict) ... ok\ntest_cpu_parameters_rejected_in_real_runtime_gate (test_conv_layout_runtime.ConvRuntimeTests.test_cpu_parameters_rejected_in_real_runtime_gate) ... ok\ntest_independent_opt_in_requires_evidence_but_not_pruning_plan (test_conv_layout_runtime.ConvRuntimeTests.test_independent_opt_in_requires_evidence_but_not_pruning_plan) ... ok\ntest_runner_order_reload_rejection_and_idempotent_install (test_conv_layout_runtime.ConvRuntimeTests.test_runner_order_reload_rejection_and_idempotent_install) ... ok\ntest_rejects_changed_coverage (test_layout_isolation.LayoutIsolationSummaryTests.test_rejects_changed_coverage) ... ok\ntest_rejects_incomplete_output (test_layout_isolation.LayoutIsolationSummaryTests.test_rejects_incomplete_output) ... ok\ntest_stability_and_first_difference (test_layout_isolation.LayoutIsolationSummaryTests.test_stability_and_first_difference) ... ok\n\n----------------------------------------------------------------------\nRan 40 tests in 0.220s\n\nOK\n",
+      "stdout": "",
+      "timedOut": false
+    }
+  },
+  "boundaries": "CPU regression only; not an Ascend kernel, full model accuracy or throughput acceptance."
+}
+

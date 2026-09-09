@@ -1,0 +1,46 @@
+{
+  "schema": "paper-to-ascend-experiment/v1",
+  "experiment_id": "qwen38-drrqr-correctness-20260908",
+  "status": "preregistered",
+  "parent_experiment": "qwen38-drrqr-20260908",
+  "purpose": "Determine whether Dk104 and Dk88 failures originate in the Ascend GDN prefill/decode numerical path before further parameter sweeps.",
+  "immutable_parent_decision": "rejected",
+  "model": "/cache/austinov/Qwen3.8-27B",
+  "runtime": {
+    "image_id": "sha256:660ce23a83574fdcd28ba126b07615829c06770c06fbdf6533f03cc4d90acdb1",
+    "vllm_ascend_tag": "v0.23.0",
+    "vllm_ascend_source_commit": "5cb98caaadeff42b5b62b996e34bb2aaa29d20fd"
+  },
+  "resource_contract": {
+    "allowed_physical_npus": [4, 5, 6, 7],
+    "kernel_parity_physical_npu": 4,
+    "kernel_parity_container_npu": 0,
+    "forbidden_physical_npus": [0, 1, 2, 3],
+    "reason": "A single NPU reproduces one TP4 worker's local tensor shapes without occupying the other three allowed cards."
+  },
+  "matrix": {
+    "key_dims": [128, 104, 88, 64],
+    "seeds": [42, 111],
+    "tp4_local_heads": {"query_key": 4, "value": 12},
+    "value_dim": 128,
+    "prefill_sequence_lengths": [63, 64, 65],
+    "decode_batches": [1, 16],
+    "decode_steps": 8,
+    "state_dtype": "float32",
+    "activation_dtype": "bfloat16"
+  },
+  "gates": {
+    "decode": {"rtol": 0.003, "atol": 0.01},
+    "prefill": {"rtol": 0.01, "atol": 0.01},
+    "nonfinite_allowed": 0,
+    "harness_control": "Every Dk128 case must pass.",
+    "pass": "All preregistered cases pass.",
+    "shape_defect": "Dk128 and Dk64 pass while Dk104 or Dk88 fails.",
+    "escalation_if_all_pass": "Test packed projection, causal convolution, rearrange, GDN and cache using layer-real tensors."
+  },
+  "claim_boundaries": [
+    "This is numerical correctness evidence, not performance evidence.",
+    "One physical NPU reproduces TP4-local shapes but does not prove TP4 end-to-end behavior.",
+    "Existing Dk104 and Dk88 LongBench scores remain operational failures and are not algorithm-trend evidence until this gate is resolved."
+  ]
+}

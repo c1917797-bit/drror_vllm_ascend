@@ -1,0 +1,81 @@
+{
+  "schema": "paper-to-ascend-experiment-result/v1",
+  "experiment_id": "qwen38-drrqr-correctness-20260908",
+  "run": "gdn-parity-v2",
+  "status": "completed",
+  "verdict": "shape_specific_decode_kernel_defect",
+  "started_at": "2026-09-08T09:29:12.794763780Z",
+  "finished_at": "2026-09-08T09:31:37.592676800Z",
+  "container": {
+    "name": "qwen38_drrqr_gdn_parity_npu4_20260908_v2",
+    "id": "c8ecc53adca5f2f86a245f780928049aa13e9db6b80d4b7f20a7550001c77205",
+    "exit_code": 1,
+    "oom_killed": false,
+    "image_id": "sha256:660ce23a83574fdcd28ba126b07615829c06770c06fbdf6533f03cc4d90acdb1",
+    "physical_to_container_device": "NPU4 -> NPU0"
+  },
+  "software": {
+    "plugin_version": "0.1.4",
+    "plugin_commit": "ec6e7dc5405564b49e7d844809b5e15791b89e7a",
+    "vllm": "0.23.0+empty",
+    "vllm_ascend": "0.23.0",
+    "vllm_ascend_source_commit": "5cb98caaadeff42b5b62b996e34bb2aaa29d20fd",
+    "torch": "2.10.0+cpu",
+    "torch_npu": "2.10.0.post4",
+    "device_name": "Ascend910B4"
+  },
+  "summary": {
+    "total": 136,
+    "passed": 72,
+    "failed": 64,
+    "prefill": {
+      "Dk128": {"passed": 2, "total": 2},
+      "Dk104": {"passed": 2, "total": 2},
+      "Dk88": {"passed": 2, "total": 2},
+      "Dk64": {"passed": 2, "total": 2}
+    },
+    "decode": {
+      "Dk128": {"passed": 32, "total": 32},
+      "Dk104": {"passed": 0, "total": 32},
+      "Dk88": {"passed": 0, "total": 32},
+      "Dk64": {"passed": 32, "total": 32}
+    }
+  },
+  "worst_observed_metrics": {
+    "prefill": {
+      "Dk128": {"output_relative_l2": 0.0034458069, "state_relative_l2": 0.0024287864},
+      "Dk104": {"output_relative_l2": 0.0034484447, "state_relative_l2": 0.0024238973},
+      "Dk88": {"output_relative_l2": 0.0034516583, "state_relative_l2": 0.0024229512},
+      "Dk64": {"output_relative_l2": 0.0034938347, "state_relative_l2": 0.0024598429}
+    },
+    "decode": {
+      "Dk128": {"output_relative_l2": 0.0000299253, "state_relative_l2": 0.0000000719},
+      "Dk104": {"output_relative_l2": 1.4737467731, "state_relative_l2": 1.3812044334},
+      "Dk88": {"output_relative_l2": 1.3766829437, "state_relative_l2": 1.3765711352},
+      "Dk64": {"output_relative_l2": 0.0000315011, "state_relative_l2": 0.0000000675}
+    }
+  },
+  "artifacts": {
+    "v2_report": {
+      "path": "/cache/cch/state-reduction-qwen38-drrqr-correctness-20260908/gdn-parity-v2/report.json",
+      "sha256": "9284def78e9cd839a457090d1581bc4c21f4e9dda338662c14c3f881b892a38a",
+      "bytes": 196387
+    },
+    "v1_report": {
+      "path": "/cache/cch/state-reduction-qwen38-drrqr-correctness-20260908/gdn-parity-v1/report.json",
+      "sha256": "781caafd1ddfab79cb1c7f339ccbf9cae9b69a7ce5a724774af52ed20213c247",
+      "bytes": 206043,
+      "use": "decode evidence only; prefill was a documented harness initialization failure"
+    },
+    "runner": {
+      "path": "tools/gdn_golden_parity.py",
+      "sha256": "1a2d1a61040a58a6f0c1d90cdbf0fc17058f3273eaef8b3d1b80116c97d92cb9"
+    }
+  },
+  "decisions": [
+    "Invalidate the prior Dk104 and Dk88 quality scores as evidence of an algorithmic pruning trend.",
+    "Treat Dk64 as the only reduced dimension that has passed both prefill and recurrent-decode kernel parity.",
+    "Do not claim the performance-quality objective is met: Dk64 retained the historical performance gain but lost 9.449 percentage points on LongBench.",
+    "Repair or avoid the non-16-aligned recurrent state copy-out path before evaluating intermediate pruning dimensions."
+  ]
+}

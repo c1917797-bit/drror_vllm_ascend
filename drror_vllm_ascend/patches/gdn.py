@@ -9,7 +9,7 @@ import inspect
 from ..diagnostics import emit_evidence
 from ..envs import DrrqrConfig
 
-SUPPORTED_REDUCED_KEY_DIMS = (64, 88, 104)
+SUPPORTED_REDUCED_KEY_DIMS = (32, 64, 96, 112)
 
 
 def install_prefill_patch(gdn_module, config: DrrqrConfig) -> None:
@@ -79,6 +79,10 @@ def install_prefill_patch(gdn_module, config: DrrqrConfig) -> None:
                 note="Kernel return observed; asynchronous device completion requires request success",
             )
             reported = True
+            # Evidence is fail-closed only for the first successful call.
+            # Restore the exact audited binding so subsequent prefill work has
+            # no Python dispatch-wrapper overhead.
+            gdn_module.chunk_gated_delta_rule = original
         return result
 
     dispatch._drror_prefill_config = identity
@@ -155,6 +159,11 @@ def install_decode_observer(gdn_cls, gdn_module, config: DrrqrConfig) -> None:
             observation="unchanged audited v0.23 core decode branch returned; torch.ops was not replaced",
         )
         reported = True
+        # Restore both exact v0.23 methods after the first successful decode
+        # observation.  Existing instances resolve these class attributes on
+        # each call, so the hot path no longer pays observer/contextvar costs.
+        gdn_cls._forward_core = original_core
+        gdn_cls.rearrange_mixed_qkv = original_rearrange
         return result
 
     core._drror_decode_config = identity

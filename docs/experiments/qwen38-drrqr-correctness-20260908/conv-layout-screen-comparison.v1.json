@@ -1,0 +1,39 @@
+{
+  "schema": "drrqr-layout-screen-comparison/v1",
+  "status": "single_screen_complete",
+  "metrics": {
+    "output_tokens_per_second": {
+      "original": 133.06098968714358,
+      "packed": 134.20561729490433,
+      "change_percent": 0.8602277876122999
+    },
+    "ttft_mean_ms": {
+      "original": 36824.037229735404,
+      "packed": 36832.96172126429,
+      "change_percent": 0.024235505393410683
+    },
+    "tpot_mean_ms": {
+      "original": 69.81218474290543,
+      "packed": 69.03063336485484,
+      "change_percent": -1.119505686476907
+    }
+  },
+  "same_benchmark_config": true,
+  "same_runtime_and_plugin_hashes": true,
+  "four_workers_48_layers_exact_activation": true,
+  "report_sha256": {
+    "dk64-original": "dbecf8a2d460b979730e1276b44831c25b612a58e2e3dbd25d08060aecad89f6",
+    "dk64-packed": "be4655ee28424ee24519acc1990b08a60225e5126d97a7625f5903595474c43d"
+  },
+  "service_manifest_sha256": {
+    "dk64-original": "d4f383db3e9f7ee59889a69b018eb8abedae924c05a02b5a77ea75d13e53028d",
+    "dk64-packed": "ff4596c95b340d43fc29ae28b9f85039c54fd0905dc5986c9573c74e77bbe869"
+  },
+  "limits": [
+    "One run per layout; no statistical significance claim",
+    "Original and packed runs separated by connection interruption",
+    "Not an unpruned contemporaneous control",
+    "No task accuracy evaluation in this screen"
+  ],
+  "decision": "retain opt-in candidate; small observed gain, shift main optimization effort to larger hotspots"
+}
