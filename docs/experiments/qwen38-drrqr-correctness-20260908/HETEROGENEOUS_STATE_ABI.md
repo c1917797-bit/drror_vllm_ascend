@@ -108,3 +108,52 @@ reference `recurrent_gated_delta_rule_tiling.cpp` accepts BF16 or FP32 state,
 whereas the actually loaded tiler reported that beta and state must both be
 BF16. Runtime behavior and loaded-library hashes are authoritative for this
 experiment.
+
+## Diagnostic v3 and passing v4
+
+The v3 probe added 512-byte state-view alignment and per-call synchronization.
+It still failed, but the new diagnostic output localized the failure to the
+first independently allocated uniform64/batch1 Dk64 call, before any arena
+view was used. This disproved the arena-alignment explanation for v2.
+
+The decisive difference from the previously passing `gdn_golden_parity.py`
+was custom-op initialization order. The golden harness sets compile mode,
+loads the custom operator, sets the NPU device, and initializes Triton device
+properties in that order. Earlier heterogeneous probes set the device before
+custom-op loading and omitted Triton device-property initialization.
+
+V4 preserved the BF16 service dtype and 512-byte arena alignment, adopted the
+golden initialization order, and retained the stronger independent-sanity and
+per-layer synchronization diagnostics. The single v4 matrix operation
+`exec-000000000000035e` completed successfully in 34.189 seconds.
+
+All four cases passed:
+
+- uniform64, batch 1: 8/8 exact steps
+- uniform64, batch 16: 8/8 exact steps
+- heterogeneous `[128, 32, 32, 64]`, batch 1: 8/8 exact steps
+- heterogeneous `[128, 32, 32, 64]`, batch 16: 8/8 exact steps
+
+For every case, independently allocated state, arena eager state, and arena
+NPUGraph state had zero pointer remainder modulo 512. Outputs and full state
+were finite and bitwise identical across all eight changing-input/state-index
+steps; guards remained intact and all tracked storage pointers were unchanged.
+Uniform and heterogeneous layouts had identical logical state bytes because
+both have aggregate Dk 256.
+
+Passing v4 report:
+
+```text
+/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/heterogeneous-state-abi-v4/report.json
+SHA256 af09119cd9ca7400dd0346378098c5f31d431cbec90deffe2b2fee745685fe45
+```
+
+Probe SHA256:
+
+```text
+5e1a726710f5a3ef3da81f651dbe4a61da833e97fd6e9061a65c97047be27982
+```
+
+This pass admits heterogeneous BF16 arena storage to the next integration
+stage. It does not prove vLLM cache allocation/grouping, scheduler or graph-key
+correctness, prefix-cache identity, end-to-end throughput, or task accuracy.
