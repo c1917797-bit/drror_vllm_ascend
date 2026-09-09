@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NPU ABI probe for heterogeneous GDN state arenas; not a serving integration."""
+"""NPU ABI probe for BF16 heterogeneous GDN state arenas; not a serving integration."""
 import argparse
 import hashlib
 import json
@@ -12,8 +12,9 @@ import torch.nn.functional as F
 import torch_npu
 
 H_QK, H_V, D_V = 4, 12, 128
+STATE_DTYPE = torch.bfloat16
 GUARD = 64
-SENTINEL = 123.25
+SENTINEL = 123.0
 STEPS = 8
 LAYOUTS = {"uniform64": (64, 64, 64, 64), "heterogeneous": (128, 32, 32, 64)}
 
@@ -30,7 +31,7 @@ def exact(a, b):
 def arena(dks, slots):
     sizes = [slots * H_V * D_V * dk for dk in dks]
     storage = torch.full((sum(sizes) + GUARD * (len(sizes) + 1),),
-                         SENTINEL, dtype=torch.float32, device="npu:0")
+                         SENTINEL, dtype=STATE_DTYPE, device="npu:0")
     views, guards = [], [storage[:GUARD]]
     offset = GUARD
     for dk, size in zip(dks, sizes):
@@ -54,7 +55,7 @@ def case(name, dks, batch):
     generator = torch.Generator().manual_seed(20260909 + batch)
     inputs, initial = [], []
     for dk in dks:
-        initial.append(torch.randn((slots, H_V, D_V, dk), generator=generator) * 0.01)
+        initial.append((torch.randn((slots, H_V, D_V, dk), generator=generator) * 0.01).to(STATE_DTYPE))
         inputs.append({
             "q": torch.zeros((batch, H_QK, dk), dtype=torch.bfloat16, device="npu:0"),
             "k": torch.zeros((batch, H_QK, dk), dtype=torch.bfloat16, device="npu:0"),
@@ -116,7 +117,7 @@ def case(name, dks, batch):
     finally:
         graph.reset()
     return {"layout": name, "dks": dks, "batch": batch, "slots": slots,
-            "state_layout": "N,Nv,Dv,Dk", "state_dtype": "float32",
+            "state_layout": "N,Nv,Dv,Dk", "state_dtype": "bfloat16",
             "logical_state_bytes": sum(x.numel() * x.element_size() for x in eager),
             "steps": records,
             "passed": len(records) == STEPS and all(
@@ -142,7 +143,7 @@ def main():
         raise RuntimeError("Ascend GDN source changed; re-audit")
     out.mkdir(parents=True)
     report = {
-        "schema": "drrqr-heterogeneous-state-probe/v1", "status": "running",
+        "schema": "drrqr-heterogeneous-state-probe/v2", "status": "running",
         "created_unix_ns": time.time_ns(), "script_sha256": checksum(__file__),
         "torch": torch.__version__, "torch_npu": torch_npu.__version__,
         "device": "logical npu:0; externally verified physical NPU4",
@@ -150,6 +151,7 @@ def main():
         "ascend_gdn_sha256": checksum(source),
         "custom_opp_path": os.environ.get("ASCEND_CUSTOM_OPP_PATH"),
         "protocol": {"layouts": LAYOUTS, "batches": [1, 16], "steps": STEPS,
+                     "state_dtype": "bfloat16", "beta_dtype": "bfloat16",
                      "criterion": "finite bitwise equality; full state and output, intact guards",
                      "budget": "one matrix, no retries", "graph": "torch.npu.NPUGraph"},
         "limits": "Synthetic native ABI/storage probe only, not model cache-manager integration, throughput or task accuracy.",

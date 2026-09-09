@@ -69,3 +69,42 @@ actual state and beta dtypes and update the arena byte accounting and report
 labels accordingly. Passing such a probe would still prove only native
 ABI/storage compatibility, not heterogeneous vLLM cache integration or an
 end-to-end gain.
+
+## Corrected BF16 v2 experiment
+
+Source and runtime inspection after v1 showed that Qwen3 Next derives both
+GDN cache dtypes from the BF16 model dtype when the mamba cache dtype settings
+are `auto`. The loaded native tiler also rejected FP32 state. The probe was
+therefore changed to BF16 state and beta, its schema was advanced to v2, and
+the guard sentinel was changed to an exactly representable BF16 value.
+
+The v2 matrix was declared as a separate experiment with the same four cases,
+eight-step exactness criteria, and one-run/no-retry budget. Its sole operation
+was `exec-0000000000000345`. It passed dtype tiling but failed during the first
+uniform64/batch1 warm-up synchronization with error 507035: the vector-core
+instruction read or wrote UB out of bounds. Four layer calls had been queued
+before that synchronization, so v2 cannot identify the individual call.
+No case completed and heterogeneous widths were not reached.
+
+Saved v2 report:
+
+```text
+/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/heterogeneous-state-abi-v2/report.json
+SHA256 68f278f97c39c29caea56fe7db52362f30c997b2eaff985831f8f487605fe63c
+```
+
+This is a uniform-control failure, not evidence that heterogeneous Dk is
+invalid. A concrete probe defect is that changing the arena from FP32 to BF16
+also changed the 64-element leading guard from 256 to 128 bytes. Every state
+body in the tested shapes is a multiple of 512 bytes, so every arena view
+retained that 128-byte base-pointer phase instead of the stronger alignment of
+an independent NPU allocation. A future v3 must preserve allocation-grade
+alignment, synchronize each diagnostic warm-up call separately, and record
+pointer alignment before launching the native kernel. It is a new experiment,
+not a retry of v2.
+
+There is also source/binary behavior drift worth preserving: the exact v0.23
+reference `recurrent_gated_delta_rule_tiling.cpp` accepts BF16 or FP32 state,
+whereas the actually loaded tiler reported that beta and state must both be
+BF16. Runtime behavior and loaded-library hashes are authoritative for this
+experiment.
