@@ -1,0 +1,106 @@
+{
+  "schema": "drrqr-retained-key-energy-stats/v1",
+  "raw_path": "/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/retained-key-stats-v1/run-v2/report.json",
+  "raw_sha256": "8882d60948ed773bb200303a1878d43441bda105bac4090e776b34ad684ceb7b",
+  "status": "completed_descriptive_only",
+  "script_sha256": "6f19d4f31125b4de209113cc3b7bc9ca2faec0f8ea1d8add14ca8a72d7b59dfe",
+  "capture_file_count": 384,
+  "head_count": 96,
+  "captured_token_rows": 786432,
+  "audited_layers": [
+    0,
+    12,
+    25,
+    38,
+    50,
+    62
+  ],
+  "plan": {
+    "path": "/plans/prune50-energy-kernel-v1.json",
+    "sha256": "b1fcb727d3e58be66cc24148e30a5a1722d3bdc0914784f01cad02f11f741b8c",
+    "objective": "energy-kernel"
+  },
+  "calibration": {
+    "path": "/calibration/longbenchv2-non-eval-16x2048-qwen38-inputids.jsonl",
+    "sha256": "81748f94c4eff0ad5e4053eb7c4a30b1a397a82d45676a8b0b42394bd612bd47",
+    "scalar_train_rows": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "scalar_holdout_rows": [
+      12,
+      13,
+      14,
+      15
+    ]
+  },
+  "summaries": {
+    "head_mean_k_retention": {
+      "count": 96,
+      "mean": 0.8611182769513729,
+      "std": 0.08452890254216391,
+      "cv": 0.09816177963545562,
+      "min": 0.6374316819399106,
+      "p05": 0.7042576201168463,
+      "median": 0.8809773230249613,
+      "p95": 0.9644761550292262,
+      "p99": 0.975775003345482,
+      "max": 0.98735366918817
+    },
+    "head_k_retention_cv": {
+      "count": 96,
+      "mean": 0.06954366657293985,
+      "std": 0.041413833485890464,
+      "cv": 0.5955083406833916,
+      "min": 0.015701294776445468,
+      "p05": 0.024896445775110174,
+      "median": 0.05525046939842109,
+      "p95": 0.15765783913140283,
+      "p99": 0.18509799693501924,
+      "max": 0.20242762309698212
+    },
+    "head_holdout_relative_deviation_p95": {
+      "count": 96,
+      "mean": 0.13059387964517652,
+      "std": 0.07762260898416747,
+      "cv": 0.5943816754281903,
+      "min": 0.02503674671820093,
+      "p05": 0.04554121118497668,
+      "median": 0.1036790164042864,
+      "p95": 0.2959072099467396,
+      "p99": 0.34297021475202444,
+      "max": 0.34654662677907583
+    }
+  },
+  "claim_boundary": "Descriptive calibration statistics only. Frozen coordinate selection used all 16 rows, so the 12/4 scalar split is not held-out selector validation or task generalization. Captures lack V/g/beta/state/teacher outputs: not actual recurrent replay. No NPU, accuracy or throughput claim.",
+  "execution": {
+    "operation_id": "exec-00000000000005fe",
+    "duration_ms": 12014,
+    "exit_code": 0,
+    "device_mappings": [],
+    "network": "none",
+    "cpu_limit": 4,
+    "memory_bytes": 6442450944,
+    "timeout_seconds": 600,
+    "backend_autoload": false,
+    "container": "drrqr_retained_key_stats_v2_20260909",
+    "auto_removed_verified_by": "exec-0000000000000604",
+    "first_launch_failure": "retained-key-stats.launch-v1.failure.json"
+  },
+  "software_tests": {
+    "operation_id": "exec-00000000000005f7",
+    "passed": 8,
+    "warnings": 14,
+    "claim": "software-only tests; not NPU or accuracy evidence"
+  }
+}

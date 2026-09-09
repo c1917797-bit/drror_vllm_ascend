@@ -1,0 +1,167 @@
+{
+  "schema": "drrqr-rank-budget-golden-summary/v1",
+  "path": "/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/rank-budget-48-80-golden-v1/report.json",
+  "sha256": "3e0ff767fcb28996a2e25309d3adcd99fff67432a08b1a3538dd7641b7ab6698",
+  "verdict": "PASS",
+  "complete": true,
+  "summary": {
+    "failed": 0,
+    "failed_case_ids": [],
+    "passed": 68,
+    "total": 68
+  },
+  "protocol": {
+    "decode_batches": [
+      1,
+      16
+    ],
+    "decode_steps": 8,
+    "dims": [
+      128,
+      64,
+      48,
+      80
+    ],
+    "interpretation": {
+      "all_dims_pass": "escalate to packed projection, causal conv, rearrange and cache parity",
+      "dk128_and_dk64_pass_104_or_88_fail": "direct evidence of reduced-shape numerical defect",
+      "dk128_failure": "HARNESS_INVALID"
+    },
+    "phases": "both",
+    "prefill_lengths": [
+      63,
+      64,
+      65
+    ],
+    "seeds": [
+      42
+    ],
+    "tp4_local_shape": {
+      "query_key_heads": 4,
+      "value_dim": 128,
+      "value_heads": 12
+    }
+  },
+  "provenance": {
+    "container_device": "npu:0",
+    "device_name": "Ascend910B4",
+    "hostname": "a41efa7fcf8b",
+    "image_id": "sha256:660ce23a83574fdcd28ba126b07615829c06770c06fbdf6533f03cc4d90acdb1",
+    "physical_npu": 4,
+    "plugin": "0.1.6",
+    "plugin_commit": "905f939dee0eea7a30e7d944208186d0765d2a47",
+    "python": "3.12.13 (main, Aug  3 2026, 03:44:26) [GCC 11.4.0]",
+    "torch": "2.10.0+cpu",
+    "torch_npu": "2.10.0.post4",
+    "visible_devices": "0,1,2,3",
+    "vllm": "0.23.0+empty",
+    "vllm_ascend": "0.23.0",
+    "vllm_ascend_source_commit": "unavailable"
+  },
+  "groups": {
+    "128/decode": {
+      "count": 16,
+      "passed": 16,
+      "output_max_abs": 0.000003814697265625,
+      "output_max_relative_l2": 0.00002992534837693918,
+      "state_max_abs": 1.4901161193847656e-8,
+      "state_max_relative_l2": 7.19224604697644e-8
+    },
+    "128/prefill": {
+      "count": 1,
+      "passed": 1,
+      "output_max_abs": 0.000030517578125,
+      "output_max_relative_l2": 0.0034458068818666067,
+      "state_max_abs": 0.0003020353615283966,
+      "state_max_relative_l2": 0.002428786353207973
+    },
+    "64/decode": {
+      "count": 16,
+      "passed": 16,
+      "output_max_abs": 0.00000762939453125,
+      "output_max_relative_l2": 0.00003150107039679397,
+      "state_max_abs": 1.4901161193847656e-8,
+      "state_max_relative_l2": 6.358373781021852e-8
+    },
+    "64/prefill": {
+      "count": 1,
+      "passed": 1,
+      "output_max_abs": 0.00006103515625,
+      "output_max_relative_l2": 0.003493834710959448,
+      "state_max_abs": 0.00035183876752853394,
+      "state_max_relative_l2": 0.0024598428639569375
+    },
+    "48/decode": {
+      "count": 16,
+      "passed": 16,
+      "output_max_abs": 0.000003814697265625,
+      "output_max_relative_l2": 0.00001524175379383153,
+      "state_max_abs": 2.2351741790771484e-8,
+      "state_max_relative_l2": 6.94302230091496e-8
+    },
+    "48/prefill": {
+      "count": 1,
+      "passed": 1,
+      "output_max_abs": 0.0001220703125,
+      "output_max_relative_l2": 0.0034798162967860065,
+      "state_max_abs": 0.00043673068284988403,
+      "state_max_relative_l2": 0.0024568789176200676
+    },
+    "80/decode": {
+      "count": 16,
+      "passed": 16,
+      "output_max_abs": 0.0000019073486328125,
+      "output_max_relative_l2": 0.000008826621007031612,
+      "state_max_abs": 1.4901161193847656e-8,
+      "state_max_relative_l2": 7.08973918107838e-8
+    },
+    "80/prefill": {
+      "count": 1,
+      "passed": 1,
+      "output_max_abs": 0.00006103515625,
+      "output_max_relative_l2": 0.003460321158079542,
+      "state_max_abs": 0.0004159659147262573,
+      "state_max_relative_l2": 0.002447919192662234
+    }
+  },
+  "gate": {
+    "decode": {
+      "rtol": 0.003,
+      "atol": 0.01
+    },
+    "prefill": {
+      "rtol": 0.01,
+      "atol": 0.01
+    }
+  },
+  "scope": "Native NPU eager numerical checks at TP4-local shapes on physical NPU4 only; not a four-rank model run, graph gate, selector validation, throughput measurement or task accuracy.",
+  "launch": {
+    "operation_id": "exec-00000000000005df",
+    "duration_ms": 72193,
+    "exit_code": 0,
+    "script_sha256": "1a2d1a61040a58a6f0c1d90cdbf0fc17058f3273eaef8b3d1b80116c97d92cb9",
+    "ascend_gdn_sha256": "d6ec29919268178f5bf6e70e689c1d273d04b1cb1d84dc94efa7bbbc35490816",
+    "plugin_enabled": false,
+    "thread_limit": 4,
+    "max_seconds": 600
+  },
+  "provenance_correction": {
+    "raw_report_plugin_version": "0.1.6",
+    "installed_version_from_tmp_cwd": "0.1.11",
+    "installed_distribution": "/usr/local/python3.12.13/lib/python3.12/site-packages/drror_vllm_ascend_plugin-0.1.11.dist-info",
+    "explanation": "The repository-cwd metadata lookup found source-tree distribution metadata. The raw report is preserved. A separate /tmp-cwd lookup confirmed the installed distribution and package origin. Plugin was explicitly disabled in this native golden run.",
+    "operation_id": "exec-00000000000005e6"
+  },
+  "postflight": {
+    "docker_top_operation": "exec-00000000000005e4",
+    "container_only_bash": true,
+    "npu_smi_operation": "exec-00000000000005e7",
+    "physical_4_to_7_no_processes": true
+  },
+  "remaining": [
+    "NPUGraph and actual projection/conv/cache path checks for new widths",
+    "Bound algorithm plans and actual layer-sensitivity evidence",
+    "Contemporaneous equally optimized dense/candidate endpoint screening",
+    "Final same-candidate paired performance and task accuracy"
+  ]
+}

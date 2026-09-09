@@ -1,0 +1,27 @@
+{
+  "schema": "drrqr-experiment-launch-failure/v1",
+  "operation_id": "exec-00000000000005fb",
+  "container": "drrqr_retained_key_stats_v1_20260909",
+  "image_id": "sha256:660ce23a83574fdcd28ba126b07615829c06770c06fbdf6533f03cc4d90acdb1",
+  "stage": "torch import before capture reads/output report creation",
+  "record": {
+    "args": [
+      "start",
+      "--attach",
+      "drrqr_retained_key_stats_v1_20260909"
+    ],
+    "cancelled": false,
+    "command": "docker",
+    "cwd": null,
+    "durationMs": 3249,
+    "error": "exit code",
+    "exitCode": 1,
+    "id": "exec-00000000000005fb",
+    "lane": "job",
+    "state": "completed",
+    "stderr": "Traceback (most recent call last):\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/__init__.py\", line 2935, in _import_device_backends\n    entrypoint = backend_extension.load()\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/importlib/metadata/__init__.py\", line 205, in load\n    module = import_module(match.group('module'))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/importlib/__init__.py\", line 90, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1387, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1360, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1331, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 999, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/__init__.py\", line 40, in <module>\n    import torch_npu.utils.patch_getenv\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/utils/__init__.py\", line 12, in <module>\n    from torch_npu.npu.utils import get_cann_version\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/npu/__init__.py\", line 158, in <module>\n    from .utils import (obfuscation_initialize, obfuscation_calculate, obfuscation_finalize,\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/npu/utils.py\", line 11, in <module>\n    import torch_npu._C\nImportError: libascend_hal.so: cannot open shared object file: No such file or directory\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/cache/cch/drror_vllm_ascend/tools/retained_key_energy_stats.py\", line 11, in <module>\n    import torch\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/__init__.py\", line 2980, in <module>\n    _import_device_backends()\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/__init__.py\", line 2939, in _import_device_backends\n    raise RuntimeError(\nRuntimeError: Failed to load the backend extension: torch_npu. You can disable extension auto-loading with TORCH_DEVICE_BACKEND_AUTOLOAD=0.\n",
+    "stdout": "",
+    "timedOut": false
+  },
+  "correction": "New device-free launch with explicit TORCH_DEVICE_BACKEND_AUTOLOAD=0; no driver/device mounts added; old failure preserved."
+}

@@ -33,6 +33,12 @@ uses 1024. Preserve historical results and label invalid or non-comparable evide
 
 ## Mainline experiment admission and scope control
 
+The user's latest steering is algorithm-first: adapt DRRQR selectors, rank
+budgets and recurrence behavior to obtain the joint objective. Operator/cache
+changes are authorized when they enable or improve a concrete DRRQR candidate;
+generic operator development is not an independent completion target. Continue
+to apply any general optimization equally to the contemporaneous dense control.
+
 Before each experiment state its performance-first phase, concrete hypothesis, deciding
 evidence, and bounded run/time budget. After completion report the evidence and return to
 the mainline. No automatic unbounded retry/search or new acceptance criteria.

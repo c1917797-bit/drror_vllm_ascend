@@ -1,0 +1,225 @@
+{
+  "schema": "drrqr-retained-key-beta-probe/v1",
+  "raw_path": "/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/retained-key-beta-npu-v1/report.json",
+  "raw_sha256": "d548c37e94594082819628e0052acaca8e5df94f304dd3969e74c56523dc6baf",
+  "status": "synthetic_retained_key_beta_implementation_pass",
+  "script_sha256": "86c31fb67503226ed7ba6daf3c1d7a56db8e15d803eca764d64ac08772aded83",
+  "protocol": {
+    "Dk": 64,
+    "Hqk": 4,
+    "Hv": 12,
+    "Dv": 128,
+    "state_dtype": "float32",
+    "qkv_beta_base_dtype": "bfloat16",
+    "g_dtype": "float32",
+    "state_layout": "slots,Hv,Dv,Dk",
+    "slots": "batch+3",
+    "state_interpretation": "Synthetic operator state T, not recovered dense state S.",
+    "batches": [
+      1,
+      16
+    ],
+    "steps": 8,
+    "r_cases": {
+      "identity": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "retained_key": [
+        0.5,
+        0.75,
+        0.875,
+        1
+      ]
+    },
+    "r_value_mapping": "FP32 key-head energies.repeat_interleave(3)",
+    "beta_path": "NPU beta_base.to(float32)*r_value -> bfloat16 inside captured graph",
+    "rtol": 0.003,
+    "atol": 0.01,
+    "relative_l2": "norm(actual-reference)/max(norm(reference), FP32 epsilon)",
+    "relative_l2_limit": 0.0078125,
+    "normalized_max": "max(abs(actual-reference))/max(max(abs(reference)), FP32 epsilon)",
+    "normalized_max_limit": 0.015625,
+    "admission": "All declared metrics, finite exact eager/graph bytes, quantized beta, identity control, unselected slots and metadata checks must pass.",
+    "budget": "one four-case 8-step matrix, three fixed graph warmups per case, no retries"
+  },
+  "cases": [
+    {
+      "name": "identity",
+      "batch": 1,
+      "status": "passed",
+      "steps": 8,
+      "all_checks_passed": true,
+      "all_check_names": [
+        "cpu_unselected_slots_unchanged",
+        "eager_beta_bfloat16_cpu_exact",
+        "eager_beta_product_fp32_cpu_exact",
+        "eager_unselected_slots_unchanged",
+        "full_state_cpu_parity",
+        "graph_beta_bfloat16_cpu_exact",
+        "graph_beta_product_fp32_cpu_exact",
+        "graph_eager_full_state_bytes_equal",
+        "graph_eager_output_bytes_equal",
+        "graph_unselected_slots_unchanged",
+        "identity_native_full_state_bytes_equal",
+        "identity_native_output_bytes_equal",
+        "identity_native_unselected_slots_unchanged",
+        "identity_quantized_beta_bytes_equal",
+        "output_cpu_parity",
+        "tracked_metadata_unchanged"
+      ],
+      "max_output_relative_l2": 0.0000423908435777872,
+      "max_state_relative_l2": 4.314174243659133e-8,
+      "max_output_normalized_max": 0.0004921259842519685,
+      "max_state_normalized_max": 1.1562146150152197e-7
+    },
+    {
+      "name": "identity",
+      "batch": 16,
+      "status": "passed",
+      "steps": 8,
+      "all_checks_passed": true,
+      "all_check_names": [
+        "cpu_unselected_slots_unchanged",
+        "eager_beta_bfloat16_cpu_exact",
+        "eager_beta_product_fp32_cpu_exact",
+        "eager_unselected_slots_unchanged",
+        "full_state_cpu_parity",
+        "graph_beta_bfloat16_cpu_exact",
+        "graph_beta_product_fp32_cpu_exact",
+        "graph_eager_full_state_bytes_equal",
+        "graph_eager_output_bytes_equal",
+        "graph_unselected_slots_unchanged",
+        "identity_native_full_state_bytes_equal",
+        "identity_native_output_bytes_equal",
+        "identity_native_unselected_slots_unchanged",
+        "identity_quantized_beta_bytes_equal",
+        "output_cpu_parity",
+        "tracked_metadata_unchanged"
+      ],
+      "max_output_relative_l2": 0.000028302744915604204,
+      "max_state_relative_l2": 6.322533191095341e-8,
+      "max_output_normalized_max": 0.0005707762557077625,
+      "max_state_normalized_max": 1.2681690580953317e-7
+    },
+    {
+      "name": "retained_key",
+      "batch": 1,
+      "status": "passed",
+      "steps": 8,
+      "all_checks_passed": true,
+      "all_check_names": [
+        "cpu_unselected_slots_unchanged",
+        "eager_beta_bfloat16_cpu_exact",
+        "eager_beta_product_fp32_cpu_exact",
+        "eager_unselected_slots_unchanged",
+        "full_state_cpu_parity",
+        "graph_beta_bfloat16_cpu_exact",
+        "graph_beta_product_fp32_cpu_exact",
+        "graph_eager_full_state_bytes_equal",
+        "graph_eager_output_bytes_equal",
+        "graph_unselected_slots_unchanged",
+        "output_cpu_parity",
+        "tracked_metadata_unchanged"
+      ],
+      "max_output_relative_l2": 0.00004343870273029215,
+      "max_state_relative_l2": 4.5008486135965693e-8,
+      "max_output_normalized_max": 0.0005252100840336134,
+      "max_state_normalized_max": 8.726962999422275e-8
+    },
+    {
+      "name": "retained_key",
+      "batch": 16,
+      "status": "passed",
+      "steps": 8,
+      "all_checks_passed": true,
+      "all_check_names": [
+        "cpu_unselected_slots_unchanged",
+        "eager_beta_bfloat16_cpu_exact",
+        "eager_beta_product_fp32_cpu_exact",
+        "eager_unselected_slots_unchanged",
+        "full_state_cpu_parity",
+        "graph_beta_bfloat16_cpu_exact",
+        "graph_beta_product_fp32_cpu_exact",
+        "graph_eager_full_state_bytes_equal",
+        "graph_eager_output_bytes_equal",
+        "graph_unselected_slots_unchanged",
+        "output_cpu_parity",
+        "tracked_metadata_unchanged"
+      ],
+      "max_output_relative_l2": 0.000018143902190333853,
+      "max_state_relative_l2": 6.322492643173216e-8,
+      "max_output_normalized_max": 0.00043402777777777775,
+      "max_state_normalized_max": 2.0397079464573945e-7
+    }
+  ],
+  "source_sha256": {
+    "/cache/cch/drror_vllm_ascend/tools/gdn_retained_energy_probe.py": "86c31fb67503226ed7ba6daf3c1d7a56db8e15d803eca764d64ac08772aded83",
+    "/cache/cch/drror_vllm_ascend/tools/gdn_golden_parity.py": "1a2d1a61040a58a6f0c1d90cdbf0fc17058f3273eaef8b3d1b80116c97d92cb9",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/ops/gdn.py": "d6ec29919268178f5bf6e70e689c1d273d04b1cb1d84dc94efa7bbbc35490816",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/utils.py": "575b45d684eabdb7ac3195d33de48bd5f3233081f78886c08be92a4a2fd2fc02",
+    "/vllm-workspace/vllm-ascend/csrc/attention/recurrent_gated_delta_rule/recurrent_gated_delta_rule_torch_adpt.h": "96cf511bedd953c0b332bf97d88f535663c759fc81235baeb3044e66605d6a0c",
+    "/vllm-workspace/vllm-ascend/csrc/attention/recurrent_gated_delta_rule/op_kernel/recurrent_gated_delta_rule.cpp": "74af73bbe19fef7f8163c953e2de0ee70df49ed3b76e7d2db1c8aab32af17c03",
+    "/vllm-workspace/vllm-ascend/csrc/attention/recurrent_gated_delta_rule/op_kernel/recurrent_gated_delta_rule.h": "96e6d9667af1e3457316ffce92a8a983fcb90096df08e3efd13ec0b35b8b1c5b"
+  },
+  "operator_schema": "_C_ascend::npu_recurrent_gated_delta_rule(Tensor query, Tensor key, Tensor value, Tensor(a!) state, *, Tensor? beta=None, float? scale=None, Tensor? actual_seq_lengths=None, Tensor? ssm_state_indices=None, Tensor? num_accepted_tokens=None, Tensor? g=None, Tensor? gk=None) -> Tensor",
+  "loaded_libraries": [
+    {
+      "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi.so",
+      "sha256": "3e10def2f7158482f3967b9db6ad2707cca8691198ddae8cc52bbbaf61bb2675"
+    },
+    {
+      "path": "/usr/local/Ascend/cann-9.1.0/opp/vendors/batch_invariant/op_api/lib/libcust_opapi.so",
+      "sha256": "ff82d965a8a08bfa2862567022a04a1fd04df56d142f4393f1fb527592111069"
+    },
+    {
+      "path": "/usr/local/Ascend/cann-9.1.0/opp/vendors/batch_invariant/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+      "sha256": "68221652dffb7fa13351616ecdf4e3445425697452fed29ae147f0cc335b02c1"
+    },
+    {
+      "path": "/usr/local/Ascend/cann-9.1.0/opp/vendors/batch_invariant/op_proto/lib/linux/aarch64/libcust_opsproto_rt2.0.so",
+      "sha256": "f8308be503301621117cd421e411240a077dc4fcf04972321e403e7efc818010"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_api/lib/libcust_opapi.so",
+      "sha256": "b77ec1ec0c5e8b8c31f29dd6763979a7f9442a288c7812988655d273a41e2855"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+      "sha256": "f60bb3e11d574a188f15150a49d453388f93e3d311eb26e2072e5aa7613fa07f"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_proto/lib/linux/aarch64/libcust_opsproto_rt2.0.so",
+      "sha256": "40270c1266fe2bdb6176c501c009cb0b4a2ca7067d080ca26335b9f3db33b9d6"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/libvllm_ascend_kernels.so",
+      "sha256": "6a9fc72a66a6055eb522a251fa48632b0ba257f22fb8f91a2deedc05e03e8b6a"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/vllm_ascend_C.cpython-312-aarch64-linux-gnu.so",
+      "sha256": "eaa9457a21a45e2cb027c1345ee670b59d10fcd6f4a8be8b0b1bf2fde1d2232a"
+    }
+  ],
+  "library_evidence_scope": "Actually mapped operator objects and their file hashes; mapping alone does not prove which same-named ACLNN symbol was selected.",
+  "plugin_patch_modules_loaded": [],
+  "limits": "Synthetic implementation gate only. This probe does not consume real retained-energy distributions or model V/g/beta/state captures; model V/g/beta/state captures remain unavailable. Not real recurrent replay, dense accuracy recovery, a model test, timing, throughput or task-accuracy screening.",
+  "execution": {
+    "operation_id": "exec-000000000000060f",
+    "exit_code": 0,
+    "duration_ms": 28488,
+    "physical_npu": 4,
+    "container_logical_npu": 0,
+    "max_seconds": 600,
+    "plugin_enabled": false
+  },
+  "postflight": {
+    "docker_top_operation": "exec-0000000000000611",
+    "only_bash": true,
+    "npu_smi_operation": "exec-0000000000000612",
+    "no_processes_on_physical_4_to_7": true
+  },
+  "admission": "Representative synthetic decode eager/NPUGraph implementation gate passed. Does not admit a model candidate, prefill integration, dense recovery, task accuracy or performance."
+}

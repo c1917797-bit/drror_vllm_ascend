@@ -1,0 +1,63 @@
+{
+  "schema": "drrqr-algorithm-reentry-tests/v1",
+  "claim": "CPU software regression, not NPU model or endpoint validation",
+  "checkpoint_operation": "exec-0000000000000616",
+  "checkpoint_record": {
+    "args": [
+      "exec",
+      "-e",
+      "PYTHONDONTWRITEBYTECODE=1",
+      "-e",
+      "VLLM_ASCEND_DRRQR_ENABLE=0",
+      "-e",
+      "VLLM_ASCEND_DRRQR_CAPTURE_ENABLE=0",
+      "-e",
+      "OMP_NUM_THREADS=4",
+      "-e",
+      "MKL_NUM_THREADS=4",
+      "-e",
+      "OPENBLAS_NUM_THREADS=4",
+      "-e",
+      "PYTHONPATH=/cache/cch/drror_vllm_ascend",
+      "-w",
+      "/tmp",
+      "drrqr_qwen38_energy_preflight_20260908",
+      "timeout",
+      "--signal=TERM",
+      "--kill-after=20s",
+      "120s",
+      "/usr/local/python3.12.13/bin/python3",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "--ignore=/cache/cch/drror_vllm_ascend/tests/test_native_build_gate.py",
+      "--ignore=/cache/cch/drror_vllm_ascend/tests/test_native_codegen_gate.py",
+      "/cache/cch/drror_vllm_ascend/tests"
+    ],
+    "cancelled": false,
+    "command": "docker",
+    "cwd": null,
+    "durationMs": 25249,
+    "error": null,
+    "exitCode": 0,
+    "id": "exec-0000000000000616",
+    "lane": "job",
+    "state": "completed",
+    "stderr": "",
+    "stdout": "........................................................................ [ 32%]\n........................................................................ [ 65%]\n........................................................................ [ 98%]\n...                                                                      [100%]\n=============================== warnings summary ===============================\n../usr/local/python3.12.13/lib/python3.12/site-packages/torch/jit/_script.py:362: 14 warnings\n  /usr/local/python3.12.13/lib/python3.12/site-packages/torch/jit/_script.py:362: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n219 passed, 14 warnings in 21.08s\n",
+    "timedOut": false
+  },
+  "excluded_uncommitted_native_tests": [
+    "tests/test_native_build_gate.py",
+    "tests/test_native_codegen_gate.py"
+  ],
+  "full_worktree_regression": {
+    "operation_id": "exec-0000000000000613",
+    "passed": 252,
+    "warnings": 14,
+    "scope": "Includes 33 tests belonging to the separate uncommitted native branch; not all included in this algorithm checkpoint."
+  },
+  "independent_stats_review": "No material defect found in head mapping, metadata binding, descriptive formulas or 12/4-split claim boundary."
+}

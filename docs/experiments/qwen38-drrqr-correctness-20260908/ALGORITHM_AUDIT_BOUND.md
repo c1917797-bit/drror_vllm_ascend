@@ -1,5 +1,12 @@
 # Algorithm audit and claim boundary
 
+> Historical audit: factual selector/proxy observations below remain evidence,
+> but its blanket closure of heterogeneous/rank-budget research and claim that
+> a specific runtime mechanism is the only allowed next branch are superseded
+> by EXTENDED_RUNTIME_RESEARCH.md and the user's algorithm-first steering.
+> A proxy is not an accuracy or end-to-end impossibility bound. See
+> RANK_BUDGET_48_80.md for the new representative NPU width admission.
+
 ## Decision
 
 The load-time tensor slicing and the official-raw selector structurally match the
