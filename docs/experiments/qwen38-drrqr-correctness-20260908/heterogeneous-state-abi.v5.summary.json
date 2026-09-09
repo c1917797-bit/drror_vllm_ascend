@@ -1,0 +1,369 @@
+{
+  "schema": "drrqr-heterogeneous-state-abi-summary/v5",
+  "status": "native_heterogeneous_state_abi_pass_bf16_and_fp32",
+  "scope": "Synthetic single-worker native recurrent ABI/storage qualification only; not vLLM hybrid-pool integration, end-to-end performance, or task accuracy.",
+  "probe": {
+    "path": "tools/heterogeneous_state_probe.py",
+    "sha256": "d455dfbb86cf24e61e41ed5fd423b2b18bd009d6a824b03a4cbf60f82c8cdf71",
+    "report_schema": "drrqr-heterogeneous-state-probe/v5"
+  },
+  "provenance": {
+    "host": "chicaihong01",
+    "container": "drrqr_qwen38_energy_preflight_20260908",
+    "device": "logical npu:0; externally verified physical NPU4",
+    "report_reads": "AWMCP host-development, target-validated peer_direct",
+    "checksum_verification": "host sha256sum; reports and current probe source",
+    "process_receipts": "Both operation completions independently checked by the main agent; report completion is a separate observation."
+  },
+  "runtime": {
+    "torch": "2.10.0+cpu",
+    "torch_npu": "2.10.0.post4",
+    "operator_schema": "_C_ascend::npu_recurrent_gated_delta_rule(Tensor query, Tensor key, Tensor value, Tensor(a!) state, *, Tensor? beta=None, float? scale=None, Tensor? actual_seq_lengths=None, Tensor? ssm_state_indices=None, Tensor? num_accepted_tokens=None, Tensor? g=None, Tensor? gk=None) -> Tensor",
+    "ascend_gdn_sha256": "d6ec29919268178f5bf6e70e689c1d273d04b1cb1d84dc94efa7bbbc35490816",
+    "custom_opp_path": "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer"
+  },
+  "matrix": {
+    "state_dtypes": [
+      "bfloat16",
+      "float32"
+    ],
+    "layouts": {
+      "uniform64": [
+        64,
+        64,
+        64,
+        64
+      ],
+      "heterogeneous": [
+        128,
+        32,
+        32,
+        64
+      ]
+    },
+    "total_dk_each_layout": 256,
+    "batches": [
+      1,
+      16
+    ],
+    "slots": "batch + 3",
+    "steps_per_case": 8,
+    "case_count": 8,
+    "case_step_count": 64,
+    "qk_heads": 4,
+    "value_heads": 12,
+    "value_head_dim": 128,
+    "state_layout": "N,Nv,Dv,Dk",
+    "qkv_dtype": "bfloat16",
+    "beta_dtype": "bfloat16",
+    "g_dtype": "float32",
+    "output_dtype": "bfloat16",
+    "arena_alignment_bytes": 512,
+    "guard_bytes": 512,
+    "guard_elements": {
+      "bfloat16": 256,
+      "float32": 128
+    },
+    "paths": [
+      "independently allocated native reference",
+      "contiguous arena eager",
+      "contiguous arena NPUGraph replay"
+    ],
+    "budget": "Two separate single-dtype matrices; one invocation per dtype, no automatic retries."
+  },
+  "criteria": {
+    "output_and_full_state": "Same shape/dtype; finite values; exact logical tensor bytes after contiguous uint8 reinterpretation; signed zero is distinguished.",
+    "guards": "Typed sentinels intact before, between and after layer views.",
+    "metadata": "shape, stride, dtype, device, data_ptr, storage_ptr and storage_offset unchanged.",
+    "unselected_slots": "Previous/current CPU snapshots compared independently for reference, eager and graph; every unselected slot unchanged.",
+    "all_step_checks_passed": true,
+    "step_check_fields": [
+      "eager_output_exact",
+      "graph_output_exact",
+      "eager_full_state_exact",
+      "graph_full_state_exact",
+      "guards_intact",
+      "pointers_unchanged",
+      "tensor_metadata_unchanged",
+      "output_dtype_bfloat16",
+      "reference_unselected_slots_unchanged",
+      "eager_unselected_slots_unchanged",
+      "graph_unselected_slots_unchanged"
+    ]
+  },
+  "reports": [
+    {
+      "state_dtype": "bfloat16",
+      "path": "/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/heterogeneous-state-abi-v5-bf16/report.json",
+      "sha256": "531f603fff8efe3cdfb5089155ab1b4829a00511ece15a515d109236f2a20ccd",
+      "status": "native_heterogeneous_state_abi_pass",
+      "phase": "complete",
+      "created_unix_ns": "1788945094815732480",
+      "completed_unix_ns": "1788945115352786370",
+      "operation": {
+        "operation_id": "exec-00000000000004d4",
+        "state": "completed",
+        "exit_code": 0,
+        "duration_ms": 34001,
+        "timed_out": false,
+        "cancelled": false,
+        "confirmation_source": "main-agent operation receipt verification"
+      },
+      "cases": [
+        {
+          "layout": "uniform64",
+          "dks": [
+            64,
+            64,
+            64,
+            64
+          ],
+          "batch": 1,
+          "slots": 4,
+          "state_dtype": "bfloat16",
+          "passed": true,
+          "phase": "complete",
+          "steps_passed": 8,
+          "logical_state_bytes": 3145728,
+          "tracked_tensor_count": 46,
+          "all_11_step_checks_passed": true
+        },
+        {
+          "layout": "uniform64",
+          "dks": [
+            64,
+            64,
+            64,
+            64
+          ],
+          "batch": 16,
+          "slots": 19,
+          "state_dtype": "bfloat16",
+          "passed": true,
+          "phase": "complete",
+          "steps_passed": 8,
+          "logical_state_bytes": 14942208,
+          "tracked_tensor_count": 46,
+          "all_11_step_checks_passed": true
+        },
+        {
+          "layout": "heterogeneous",
+          "dks": [
+            128,
+            32,
+            32,
+            64
+          ],
+          "batch": 1,
+          "slots": 4,
+          "state_dtype": "bfloat16",
+          "passed": true,
+          "phase": "complete",
+          "steps_passed": 8,
+          "logical_state_bytes": 3145728,
+          "tracked_tensor_count": 46,
+          "all_11_step_checks_passed": true
+        },
+        {
+          "layout": "heterogeneous",
+          "dks": [
+            128,
+            32,
+            32,
+            64
+          ],
+          "batch": 16,
+          "slots": 19,
+          "state_dtype": "bfloat16",
+          "passed": true,
+          "phase": "complete",
+          "steps_passed": 8,
+          "logical_state_bytes": 14942208,
+          "tracked_tensor_count": 46,
+          "all_11_step_checks_passed": true
+        }
+      ]
+    },
+    {
+      "state_dtype": "float32",
+      "path": "/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/heterogeneous-state-abi-v5-fp32/report.json",
+      "sha256": "682116368a6b61fc7aee980eed3d3aa8145362c3996fb80a4fa71522515b4db5",
+      "status": "native_heterogeneous_state_abi_pass",
+      "phase": "complete",
+      "created_unix_ns": "1788945223684537740",
+      "completed_unix_ns": "1788945245115233790",
+      "operation": {
+        "operation_id": "exec-00000000000004e3",
+        "state": "completed",
+        "exit_code": 0,
+        "duration_ms": 35112,
+        "timed_out": false,
+        "cancelled": false,
+        "confirmation_source": "main-agent operation receipt verification"
+      },
+      "cases": [
+        {
+          "layout": "uniform64",
+          "dks": [
+            64,
+            64,
+            64,
+            64
+          ],
+          "batch": 1,
+          "slots": 4,
+          "state_dtype": "float32",
+          "passed": true,
+          "phase": "complete",
+          "steps_passed": 8,
+          "logical_state_bytes": 6291456,
+          "tracked_tensor_count": 46,
+          "all_11_step_checks_passed": true
+        },
+        {
+          "layout": "uniform64",
+          "dks": [
+            64,
+            64,
+            64,
+            64
+          ],
+          "batch": 16,
+          "slots": 19,
+          "state_dtype": "float32",
+          "passed": true,
+          "phase": "complete",
+          "steps_passed": 8,
+          "logical_state_bytes": 29884416,
+          "tracked_tensor_count": 46,
+          "all_11_step_checks_passed": true
+        },
+        {
+          "layout": "heterogeneous",
+          "dks": [
+            128,
+            32,
+            32,
+            64
+          ],
+          "batch": 1,
+          "slots": 4,
+          "state_dtype": "float32",
+          "passed": true,
+          "phase": "complete",
+          "steps_passed": 8,
+          "logical_state_bytes": 6291456,
+          "tracked_tensor_count": 46,
+          "all_11_step_checks_passed": true
+        },
+        {
+          "layout": "heterogeneous",
+          "dks": [
+            128,
+            32,
+            32,
+            64
+          ],
+          "batch": 16,
+          "slots": 19,
+          "state_dtype": "float32",
+          "passed": true,
+          "phase": "complete",
+          "steps_passed": 8,
+          "logical_state_bytes": 29884416,
+          "tracked_tensor_count": 46,
+          "all_11_step_checks_passed": true
+        }
+      ]
+    }
+  ],
+  "actual_service_dtype_relevance": {
+    "recurrent_state_dtype": "float32",
+    "coverage_gap_closed": "v5 FP32 matrix now covers the recurrent-state dtype observed in the actual all64 full-model cache bindings.",
+    "cache_binding_reports": [
+      "/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/layerwise-model-control-v1/legacy64/worker-probe/rank0.cache.json",
+      "/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/layerwise-model-control-v1/legacy64/worker-probe/rank1.cache.json",
+      "/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/layerwise-model-control-v1/legacy64/worker-probe/rank2.cache.json",
+      "/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/layerwise-model-control-v1/legacy64/worker-probe/rank3.cache.json"
+    ],
+    "observed_uniform64_conv_shape": [
+      925,
+      3,
+      2048
+    ],
+    "observed_conv_dtype": "bfloat16",
+    "observed_uniform64_recurrent_shape": [
+      925,
+      12,
+      128,
+      64
+    ],
+    "caveat": "Matching dtype does not qualify full-model heterogeneous allocation or execution."
+  },
+  "historical_predicate": {
+    "v4_helper_sha256": "5e1a726710f5a3ef3da81f651dbe4a61da833e97fd6e9061a65c97047be27982",
+    "caveat": "v4 checked finite torch.equal element equality, which did not distinguish signed zero; no actual v4 bit mismatch is asserted",
+    "historical_results_modified": false
+  },
+  "allocator_helper_compatibility": {
+    "path": "tools/heterogeneous_cache_allocator_probe.py",
+    "guard_lines": [
+      50,
+      51
+    ],
+    "expected_helper_sha256": "5e1a726710f5a3ef3da81f651dbe4a61da833e97fd6e9061a65c97047be27982",
+    "current_v5_helper_sha256": "d455dfbb86cf24e61e41ed5fd423b2b18bd009d6a824b03a4cbf60f82c8cdf71",
+    "status": "Existing v4 identity guard rejects current v5 helper; not updated or executed by this documentation task.",
+    "new_allocator_qualification": false
+  },
+  "loaded_libraries": {
+    "same_in_both_reports": true,
+    "evidence_kind": "process maps paths plus file SHA256",
+    "symbol_selection_proven": false,
+    "caveat": "Mappings, including the external batch_invariant vendor, do not prove which library supplied a specific runtime symbol or kernel binary.",
+    "entries": [
+      {
+        "path": "/usr/local/Ascend/cann-9.1.0/opp/vendors/batch_invariant/op_api/lib/libcust_opapi.so",
+        "sha256": "ff82d965a8a08bfa2862567022a04a1fd04df56d142f4393f1fb527592111069"
+      },
+      {
+        "path": "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_api/lib/libcust_opapi.so",
+        "sha256": "b77ec1ec0c5e8b8c31f29dd6763979a7f9442a288c7812988655d273a41e2855"
+      },
+      {
+        "path": "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+        "sha256": "f60bb3e11d574a188f15150a49d453388f93e3d311eb26e2072e5aa7613fa07f"
+      },
+      {
+        "path": "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_proto/lib/linux/aarch64/libcust_opsproto_rt2.0.so",
+        "sha256": "40270c1266fe2bdb6176c501c009cb0b4a2ca7067d080ca26335b9f3db33b9d6"
+      },
+      {
+        "path": "/vllm-workspace/vllm-ascend/vllm_ascend/libvllm_ascend_kernels.so",
+        "sha256": "6a9fc72a66a6055eb522a251fa48632b0ba257f22fb8f91a2deedc05e03e8b6a"
+      },
+      {
+        "path": "/vllm-workspace/vllm-ascend/vllm_ascend/vllm_ascend_C.cpython-312-aarch64-linux-gnu.so",
+        "sha256": "eaa9457a21a45e2cb027c1345ee670b59d10fcd6f4a8be8b0b1bf2fde1d2232a"
+      }
+    ]
+  },
+  "exclusions": [
+    "vLLM attention/Mamba shared-pool byte-address isolation",
+    "cache manager, scheduler, prefix-cache and graph-key integration",
+    "multi-rank TP4 execution (this is one worker with TP4-local shapes)",
+    "end-to-end throughput, TTFT or TPOT",
+    "LongBench-v2 or GSM8K accuracy",
+    "restoring runtime-invalid non-16-aligned Dk candidates",
+    "proof of native arithmetic against an independent mathematical oracle"
+  ],
+  "next_gate": "Preserve hybrid-pool guards. Qualify any new plugin allocator against actual mixed attention/Mamba allocation and lifecycle before an NPU model candidate/performance screen.",
+  "postflight": {
+    "confirmation_source": "main-agent postflight receipts",
+    "container_check_operation": "exec-00000000000004f3",
+    "container_processes": "original bash only, PID 262195",
+    "npu_check_operation": "exec-00000000000004f5",
+    "physical_npu4_to7": "no running workload at check time",
+    "caveat": "Point-in-time observation, not a future idleness guarantee."
+  }
+}

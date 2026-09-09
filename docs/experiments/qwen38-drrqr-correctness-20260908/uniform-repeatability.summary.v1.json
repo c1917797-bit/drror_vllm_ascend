@@ -1,0 +1,134 @@
+{
+  "schema": "drrqr-uniform-repeatability-summary/v1",
+  "status": "failed",
+  "raw_report": {
+    "host_path": "/cache/cch/state-reduction-qwen38-drrqr-aligned-20260908/dk64-energy/preflight/layerwise-model-control-v1/uniform-repeatability.v1.json",
+    "container_path": "/drrqr-results/layerwise-model-control-v1/uniform-repeatability.v1.json",
+    "sha256": "144d7947d3bc28b50c814a6f2cb6c4a51be2a1e782e788825655c99e8b891660"
+  },
+  "operations": {
+    "service": "exec-00000000000004c0",
+    "collector": "exec-00000000000004c3",
+    "comparison": "exec-00000000000004cb"
+  },
+  "controls": {
+    "first": "legacy64",
+    "repeat": "legacy64-repeat1",
+    "plan_kind": "uniform",
+    "plan_sha256": "b1fcb727d3e58be66cc24148e30a5a1722d3bdc0914784f01cad02f11f741b8c",
+    "wheel_sha256": "e0692641901ff3936c50d6165067186807cb5a5ce57cb2f686b94fa223640d21",
+    "shared_hf_head_k_dim": 64,
+    "common_optimizations": {
+      "conv_layout": "packed",
+      "prefill_mc2": true,
+      "prefill_mc2_mixed": true
+    },
+    "max_service_seconds": 1800
+  },
+  "repeat_service_exit": {
+    "path": "/drrqr-results/layerwise-model-control-v1/legacy64-repeat1/service-exit.json",
+    "sha256": "4ada54499fd6ab7d0d6862cd59e8c50d1b2eda37a5f561e304f81935001e7805",
+    "schema": "drrqr-layerwise-service-exit/v1",
+    "started_epoch_s": 1788944366.8750238,
+    "stop_reason": "stop_request",
+    "service_pid": 126348,
+    "process_group": 126348,
+    "exit_code": 0,
+    "signals": [
+      "SIGTERM"
+    ],
+    "group_remaining": false,
+    "ended_epoch_s": 1788944712.5192118,
+    "elapsed_seconds": 345.6441888809204
+  },
+  "criteria": {
+    "prompt_hashes_exact": true,
+    "token_ids_exact": true,
+    "selected_logprob_max_abs": 0.02,
+    "selected_logprob_mean_abs": 0.005,
+    "aggregation": "max and arithmetic mean over all 128 selected-token logprobs"
+  },
+  "failures": [
+    "selected_logprob_max_abs",
+    "selected_logprob_mean_abs"
+  ],
+  "structural_summary": {
+    "ranks": 4,
+    "layers_per_rank": 48,
+    "parameters_per_rank": 336,
+    "cache_tensors_per_rank": 96,
+    "num_blocks": 925,
+    "all_rank_structural_exact": true,
+    "all_rank_cache_alias_exact": true
+  },
+  "trajectory": {
+    "request_count": 4,
+    "requests": [
+      {
+        "index": 0,
+        "isolated_first_request": true,
+        "input_tokens": 32,
+        "prompt_hash_exact": true,
+        "token_ids_exact": true,
+        "logprobs_exact": false,
+        "logprob_max_abs": 0.07510435581207275,
+        "logprob_mean_abs": 0.01094149859954996,
+        "request_meets_same_thresholds": false
+      },
+      {
+        "index": 1,
+        "isolated_first_request": false,
+        "input_tokens": 3240,
+        "prompt_hash_exact": true,
+        "token_ids_exact": true,
+        "logprobs_exact": false,
+        "logprob_max_abs": 0.07957381010055542,
+        "logprob_mean_abs": 0.006076071954908002,
+        "request_meets_same_thresholds": false
+      },
+      {
+        "index": 2,
+        "isolated_first_request": false,
+        "input_tokens": 12830,
+        "prompt_hash_exact": true,
+        "token_ids_exact": true,
+        "logprobs_exact": false,
+        "logprob_max_abs": 0.08882087469100952,
+        "logprob_mean_abs": 0.004744722280975111,
+        "request_meets_same_thresholds": false
+      },
+      {
+        "index": 3,
+        "isolated_first_request": false,
+        "input_tokens": 28835,
+        "prompt_hash_exact": true,
+        "token_ids_exact": true,
+        "logprobs_exact": false,
+        "logprob_max_abs": 0.07370799779891968,
+        "logprob_mean_abs": 0.0061879098602730664,
+        "request_meets_same_thresholds": false
+      }
+    ],
+    "prompt_hashes_exact": true,
+    "token_ids_exact": true,
+    "output_tokens_total": 128,
+    "selected_logprob_count": 128,
+    "selected_logprobs_exact": false,
+    "selected_logprob_max_abs": 0.08882087469100952,
+    "selected_logprob_mean_abs": 0.006987550673926535
+  },
+  "comparator_sha256": "e60d0d7d2238eafd860c5b3bab15b5fa769085feab2745e953868176d4765bcf",
+  "validator_sha256": "9bb27324c083a52e65df23309900227761efb0bd3b36f64e59f880119d735b26",
+  "original_ab": {
+    "status": "failed",
+    "report": "/drrqr-results/layerwise-model-control-v1/comparison.json",
+    "sha256": "e1048c1eeea1cdafdf0eb168eec28a45e40cb13adcd3e5fdd94639cdbb51f36e",
+    "reclassified": false
+  },
+  "interpretation": "The same uniform implementation also crossed the unchanged endpoint gates in one independent restart. This does not prove numerical noise as the cause, establish a variability distribution, or qualify layerwise safety. Intermediate arithmetic/state differences remain unisolated.",
+  "boundaries": [
+    "No threshold relaxation or retrospective A/B pass.",
+    "No automatic expansion into framework determinism research or diagnostic-determinism worker execution.",
+    "No new performance or benchmark accuracy claim."
+  ]
+}
